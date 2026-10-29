@@ -104,7 +104,7 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
 
 ## 🚀 Hızlı Kurulum (Önerilen)
 
-Tüm bağımlılıkları otomatik kuran script:
+Tüm bağımlılıkları otomatik kuran script. **PEP 668 uyumlu** — sistem Python'unu bozmaz, tüm paketleri `apt` ile kurar:
 
 ```bash
 git clone https://github.com/KULLANICI_ADIN/hayalet.git
@@ -157,10 +157,17 @@ sudo apt install -y \
     curl git speedtest-cli zram-tools
 ```
 
+
+**Değiştir:**
+```markdown
 ### 3. Python Bağımlılıkları
+> ⚠️ **PEP 668 Uyarısı:** Raspberry Pi OS Bookworm/Trixie'de `pip3 install` sistem Python'una yazmaya çalıştığı için `externally-managed-environment` hatası verir. Paketleri `apt` ile kurun:
 
 ```bash
-pip3 install -r requirements.txt
+sudo apt install -y \
+    python3-pil python3-pil.imagetk \
+    python3-requests python3-socks \
+    python3-stem python3-dotenv
 ```
 
 ### 4. OnionShare
