@@ -695,6 +695,7 @@ Bu kodun kullanımından doğacak her türlü yasal sorumluluk **kullanıcıya a
 
 ## 🙏 Teşekkürler
 
+- **Melisa** — Lehim işi
 - **Raspberry Pi Foundation** — Donanım
 - **Tor Project** — Anonimlik altyapısı
 - **OnionShare** — Güvenli dosya paylaşımı
