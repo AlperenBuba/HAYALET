@@ -355,7 +355,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 Tüm OSINT araçları aynı şablonu kullanır:
 
-![WHOIS](screenshots/whois.jpegf)
+![WHOIS](screenshots/whois.jpeg)
 
 **Her Araçta:**
 - **Hedef girişi** — Domain, IP veya URL
