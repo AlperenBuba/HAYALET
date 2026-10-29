@@ -16,9 +16,8 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-# Scriptin bulunduğu dizini kesin olarak tespit et (cyberdeck.py'nin yeri)
+# Scriptin bulunduğu dizini kesin olarak tespit et
 PROJE_DIZINI=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
 echo "Proje dizini: $PROJE_DIZINI"
 
 # ============================================================
@@ -37,7 +36,7 @@ sudo apt install -y \
 echo "✓ Sistem paketleri tamam"
 
 # ============================================================
-# 2. Python Bağımlılıkları (PEP 668 Hatası Çözüldü)
+# 2. Python Bağımlılıkları (PEP 668 uyumlu)
 # ============================================================
 echo "[2/7] Python bağımlılıkları kuruluyor..."
 sudo apt install -y \
@@ -49,16 +48,16 @@ sudo apt install -y \
 echo "✓ Python paketleri tamam"
 
 # ============================================================
-# 3. OnionShare (izole venv - Proje dizininde)
+# 3. OnionShare (izole venv - EV DİZİNİNDE)
 # ============================================================
 echo "[3/7] OnionShare kuruluyor..."
-if [ ! -d "$PROJE_DIZINI/onionshare-env" ]; then
-    python3 -m venv "$PROJE_DIZINI/onionshare-env"
-    "$PROJE_DIZINI/onionshare-env/bin/pip" install --upgrade pip
-    "$PROJE_DIZINI/onionshare-env/bin/pip" install onionshare-cli
-    echo "✓ OnionShare venv hazır ($PROJE_DIZINI/onionshare-env)"
+if [ ! -d "$HOME/onionshare-env" ]; then
+    python3 -m venv "$HOME/onionshare-env"
+    "$HOME/onionshare-env/bin/pip" install --upgrade pip
+    "$HOME/onionshare-env/bin/pip" install onionshare-cli
+    echo "✓ OnionShare venv hazır ($HOME/onionshare-env)"
 else
-    echo "  ⚠ ./onionshare-env zaten var, atlanıyor"
+    echo "  ⚠ ~/onionshare-env zaten var, atlanıyor"
 fi
 
 # ============================================================
@@ -92,7 +91,7 @@ mkdir -p ~/downloads
 
 if [ ! -f "$PROJE_DIZINI/.env" ]; then
     cat <<EOF > "$PROJE_DIZINI/.env"
-ONIONSHARE_CLI=$PROJE_DIZINI/onionshare-env/bin/onionshare-cli
+ONIONSHARE_CLI=$HOME/onionshare-env/bin/onionshare-cli
 RECEIVE_DIR=$HOME/received_files
 SEND_DIR=$HOME/send_files
 ICON_DIR=$HOME/cyberdeck_icons
@@ -107,7 +106,6 @@ fi
 # ============================================================
 echo "[6/7] Zram aktifleştiriliyor ve eski yollar kontrol ediliyor..."
 if command -v zramctl >/dev/null 2>&1; then
-    # Zram hatasını önlemek için lz4 yerine lzo kullan
     if [ -f /etc/default/zramswap ]; then
         sudo sed -i 's/^ALGO=lz4/ALGO=lzo/' /etc/default/zramswap
     fi
@@ -127,8 +125,7 @@ fi
 # ============================================================
 echo "[7/7] Kiosk modu ve ekran ayarları yapılandırılıyor..."
 
-# .xinitrc dosyası oluştur (X11 başladığında uygulamayı başlatır)
-# DİKKAT: PROJE_DIZINI değişkeni artık tam yolu garanti ediyor.
+# .xinitrc dosyası oluştur
 cat <<EOF > ~/.xinitrc
 #!/bin/sh
 # Ekranın kararmasını ve uyku moduna girmesini engelle
@@ -139,11 +136,15 @@ xset s noblank
 # Fare imlecini ekrandan gizle
 unclutter -idle 0.1 -root &
 
-# Python uygulamasını tam ekran başlat (Tam yol kullanılıyor)
+# Proje dizinine gir (CWD kritik - .env ve fallback yolları için)
+cd $PROJE_DIZINI
+
+# Python uygulamasını tam ekran başlat
 exec python3 $PROJE_DIZINI/cyberdeck.py
 EOF
 chmod +x ~/.xinitrc
 
+# Sistem açıldığında otomatik startx
 if ! grep -q "startx" ~/.bash_profile 2>/dev/null; then
     echo "" >> ~/.bash_profile
     echo "# HAYALET Kiosk Modu Başlatıcı" >> ~/.bash_profile
@@ -164,11 +165,8 @@ echo "Sistemi yeniden başlattığınızda uygulama otomatik açılacaktır:"
 echo "  sudo reboot"
 echo ""
 echo "⚠️ EĞER OTOMATİK AÇILMAZSA:"
-echo "Lütfen 'sudo raspi-config' komutunu çalıştırıp şu ayarı yapın:"
-echo "  System Options -> Boot / Auto Login -> Console Autologin"
+echo "sudo raspi-config → System Options → Boot / Auto Login → Console Autologin"
 echo ""
-echo "⚠️ ÖNEMLİ EKRAN NOTU:"
-echo "Eğer TFT ekranın görüntüsü ters veya çözünürlüğü yanlışsa,"
-echo "'sudo nano /boot/firmware/config.txt' dosyasına uygun"
-echo "'dtoverlay=...' satırını ekleyin (örn: dtoverlay=tft35a:rotate=90)."
+echo "⚠️ TFT EKRAN:"
+echo "sudo nano /boot/firmware/config.txt → dtoverlay=tft35a:rotate=90"
 echo "================================================"
