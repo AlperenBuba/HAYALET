@@ -697,12 +697,8 @@ Bu kodun kullanımından doğacak her türlü yasal sorumluluk **kullanıcıya a
 ---
 
 ## 🙏 Teşekkürler
-<<<<<<< HEAD
-- **Melisa** — Lehim İşçiliği
-=======
 
 - **Melisa** — Lehim işi
->>>>>>> a7d1387dc28908c1c2daca107dc3b14b186fd29e
 - **Raspberry Pi Foundation** — Donanım
 - **Tor Project** — Anonimlik altyapısı
 - **OnionShare** — Güvenli dosya paylaşımı
