@@ -1,0 +1,22 @@
+# Sanal Ortamlar
+onionshare-env/
+venv/
+.venv/
+
+# Çevre değişkenleri (Sırlar ve kişisel ayarlar)
+.env
+.env.*
+*.env
+
+# Python önbelleği
+__pycache__/
+*.pyc
+*.pyo
+
+# Loglar ve Çıktılar
+*.log
+osint_logs/
+dirscan_logs/
+nmap_scans/
+received_files/
+send_files/
