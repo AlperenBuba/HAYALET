@@ -5,6 +5,7 @@ import datetime, random, tempfile, requests
 from random import choice, randint
 from string import ascii_lowercase
 from dotenv import load_dotenv
+load_dotenv(os.path.expanduser("~/HAYALET/.env"))
 
 try:
     from stem import Signal
@@ -14,7 +15,7 @@ except ImportError:
     TOR_AVAILABLE = False
 
 subprocess.Popen("xset s off -dpms", shell=True)
-ICON_DIR = os.path.expanduser("~/cyberdeck_icons")
+ICON_DIR = os.path.expanduser(os.getenv("ICON_DIR", "~/cyberdeck_icons"))
 
 def bagimlilik_kontrol():
     eksik = []
@@ -1994,7 +1995,7 @@ class OnionPage(BaseOnionPage):
     def start_process(self):
         if self.process: return
         self.log(f"\n--- {self.secili_mod} CHAT ---\n")
-        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
+        v = os.getenv("ONIONSHARE_CLI", os.path.expanduser("~/onionshare-env/bin/onionshare-cli"))
         self._sureci(f"PYTHONUNBUFFERED=1 {v} --chat" + (" --public" if self.secili_mod=="PUBLIC" else ""))
     def save_addr(self): super().save_addr("onionshare_chat.txt")
 
