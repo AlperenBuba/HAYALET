@@ -228,7 +228,7 @@ python3 cyberdeck.py
 
 ### 🎬 Başlangıç Ekranı
 
-![Boot](screenshots/boot.png)
+![Boot](screenshots/boot.jpeg)
 
 Program açıldığında **Boot Screen** karşılar:
 
@@ -244,7 +244,7 @@ Program açıldığında **Boot Screen** karşılar:
 
 ### 🏠 Ana Menü
 
-![Menu](screenshots/menu.png)
+![Menu](screenshots/menu.jpeg)
 
 Ana menüde **6 sayfa** arasında gezinirsin:
 
@@ -272,7 +272,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🔍 Quick Launcher (SEARCH)
 
-![Search](screenshots/search.png)
+![Search](screenshots/search.jpeg)
 
 **SEARCH** butonuna bas → tam ekran arama menüsü açılır:
 
@@ -292,7 +292,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🌐 Nmap Scanner
 
-![Nmap](screenshots/nmap.png)
+![Nmap](screenshots/nmap.jpeg)
 
 **Adım 1: Hedef Seç**
 - **AUTO SCAN** — Otomatik olarak tüm ağı tarar (`192.168.1.0/24`)
@@ -327,7 +327,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🔎 Dir Scanner
 
-![Dir Scan](screenshots/dirscan.png)
+![Dir Scan](screenshots/dirscan.jpeg)
 
 **4 Aşamalı Wizard:**
 
@@ -355,7 +355,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 Tüm OSINT araçları aynı şablonu kullanır:
 
-![WHOIS](screenshots/whois.png)
+![WHOIS](screenshots/whois.jpegf)
 
 **Her Araçta:**
 - **Hedef girişi** — Domain, IP veya URL
@@ -451,7 +451,7 @@ Hedef: 8.8.8.8:53
 
 ### 🧅 OnionShare
 
-![OnionChat](screenshots/onionchat.png)
+![OnionChat](screenshots/onionchat.jpeg)
 
 3 mod:
 
@@ -476,7 +476,7 @@ Hedef: 8.8.8.8:53
 
 ### 🗂️ File Manager
 
-![File Manager](screenshots/filemanager.png)
+![File Manager](screenshots/filemanager.jpeg)
 
 **Dual-Pane** (Norton Commander tarzı):
 
