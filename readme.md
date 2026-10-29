@@ -14,20 +14,20 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
 
 <table>
   <tr>
-    <td align="center"><b>Boot Screen</b><br><img src="screenshots/boot.png" width="380"></td>
-    <td align="center"><b>Ana Menü</b><br><img src="screenshots/menu.png" width="380"></td>
+    <td align="center"><b>Boot Screen</b><br><img src="screenshots/boot.jpeg" width="380"></td>
+    <td align="center"><b>Ana Menü</b><br><img src="screenshots/menu.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>Nmap Scanner</b><br><img src="screenshots/nmap.png" width="380"></td>
-    <td align="center"><b>Dir Scanner</b><br><img src="screenshots/dirscan.png" width="380"></td>
+    <td align="center"><b>Nmap Scanner</b><br><img src="screenshots/nmap.jpeg" width="380"></td>
+    <td align="center"><b>Dir Scanner</b><br><img src="screenshots/dirscan.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>WHOIS (OSINT)</b><br><img src="screenshots/whois.png" width="380"></td>
-    <td align="center"><b>File Manager</b><br><img src="screenshots/filemanager.png" width="380"></td>
+    <td align="center"><b>WHOIS (OSINT)</b><br><img src="screenshots/whois.jpeg" width="380"></td>
+    <td align="center"><b>File Manager</b><br><img src="screenshots/filemanager.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>OnionShare Chat</b><br><img src="screenshots/onionchat.png" width="380"></td>
-    <td align="center"><b>Quick Launcher</b><br><img src="screenshots/search.png" width="380"></td>
+    <td align="center"><b>OnionShare Chat</b><br><img src="screenshots/onionchat.jpeg" width="380"></td>
+    <td align="center"><b>Quick Launcher</b><br><img src="screenshots/search.jpeg" width="380"></td>
   </tr>
 </table>
 
