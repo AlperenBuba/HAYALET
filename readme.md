@@ -14,20 +14,20 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
 
 <table>
   <tr>
-    <td align="center"><b>Boot Screen</b><br><img src="screenshots/boot.png" width="380"></td>
-    <td align="center"><b>Ana Menü</b><br><img src="screenshots/menu.png" width="380"></td>
+    <td align="center"><b>Boot Screen</b><br><img src="screenshots/boot.jpeg" width="380"></td>
+    <td align="center"><b>Ana Menü</b><br><img src="screenshots/menu.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>Nmap Scanner</b><br><img src="screenshots/nmap.png" width="380"></td>
-    <td align="center"><b>Dir Scanner</b><br><img src="screenshots/dirscan.png" width="380"></td>
+    <td align="center"><b>Nmap Scanner</b><br><img src="screenshots/nmap.jpeg" width="380"></td>
+    <td align="center"><b>Dir Scanner</b><br><img src="screenshots/dirscan.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>WHOIS (OSINT)</b><br><img src="screenshots/whois.png" width="380"></td>
-    <td align="center"><b>File Manager</b><br><img src="screenshots/filemanager.png" width="380"></td>
+    <td align="center"><b>WHOIS (OSINT)</b><br><img src="screenshots/whois.jpeg" width="380"></td>
+    <td align="center"><b>File Manager</b><br><img src="screenshots/filemanager.jpeg" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>OnionShare Chat</b><br><img src="screenshots/onionchat.png" width="380"></td>
-    <td align="center"><b>Quick Launcher</b><br><img src="screenshots/search.png" width="380"></td>
+    <td align="center"><b>OnionShare Chat</b><br><img src="screenshots/onionchat.jpeg" width="380"></td>
+    <td align="center"><b>Quick Launcher</b><br><img src="screenshots/search.jpeg" width="380"></td>
   </tr>
 </table>
 
@@ -255,7 +255,7 @@ python3 cyberdeck.py
 
 ### 🎬 Başlangıç Ekranı
 
-![Boot](screenshots/boot.png)
+![Boot](screenshots/boot.jpeg)
 
 Program açıldığında **Boot Screen** karşılar:
 
@@ -271,7 +271,7 @@ Program açıldığında **Boot Screen** karşılar:
 
 ### 🏠 Ana Menü
 
-![Menu](screenshots/menu.png)
+![Menu](screenshots/menu.jpeg)
 
 Ana menüde **6 sayfa** arasında gezinirsin:
 
@@ -299,7 +299,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🔍 Quick Launcher (SEARCH)
 
-![Search](screenshots/search.png)
+![Search](screenshots/search.jpeg)
 
 **SEARCH** butonuna bas → tam ekran arama menüsü açılır:
 
@@ -319,7 +319,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🌐 Nmap Scanner
 
-![Nmap](screenshots/nmap.png)
+![Nmap](screenshots/nmap.jpeg)
 
 **Adım 1: Hedef Seç**
 - **AUTO SCAN** — Otomatik olarak tüm ağı tarar (`192.168.1.0/24`)
@@ -349,7 +349,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ### 🔎 Dir Scanner
 
-![Dir Scan](screenshots/dirscan.png)
+![Dir Scan](screenshots/dirscan.jpeg)
 
 **4 Aşamalı Wizard:**
 
@@ -373,7 +373,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 Tüm OSINT araçları aynı şablonu kullanır:
 
-![WHOIS](screenshots/whois.png)
+![WHOIS](screenshots/whois.jpeg)
 
 **Her Araçta:**
 - **Hedef girişi** — Domain, IP veya URL
@@ -421,7 +421,7 @@ OSINT araçları, **Dir Scan** ve **AI Chat** sayfalarında sağ üstte kırmız
 
 ### 🧅 OnionShare
 
-![OnionChat](screenshots/onionchat.png)
+![OnionChat](screenshots/onionchat.jpeg)
 
 3 mod:
 
@@ -446,7 +446,7 @@ OSINT araçları, **Dir Scan** ve **AI Chat** sayfalarında sağ üstte kırmız
 
 ### 🗂️ File Manager
 
-![File Manager](screenshots/filemanager.png)
+![File Manager](screenshots/filemanager.jpeg)
 
 **Dual-Pane** (Norton Commander tarzı):
 
@@ -595,14 +595,14 @@ HAYALET/
 ├── LICENSE               # GPL v3
 ├── .gitignore            # Git için
 └── screenshots/          # Ekran görüntüleri
-    ├── boot.png
-    ├── menu.png
-    ├── nmap.png
-    ├── dirscan.png
-    ├── whois.png
-    ├── filemanager.png
-    ├── onionchat.png
-    └── search.png
+    ├── boot.jpeg
+    ├── menu.jpeg
+    ├── nmap.jpeg
+    ├── dirscan.jpeg
+    ├── whois.jpeg
+    ├── filemanager.jpeg
+    ├── onionchat.jpeg
+    └── search.jpeg
 ```
 
 Kullanıcı dizininde:
@@ -629,20 +629,20 @@ sudo apt install -y scrot
 mkdir -p ~/HAYALET/screenshots
 
 # Al
-scrot -o ~/HAYALET/screenshots/boot.png
-scrot -o ~/HAYALET/screenshots/menu.png
-scrot -o ~/HAYALET/screenshots/nmap.png
-scrot -o ~/HAYALET/screenshots/dirscan.png
-scrot -o ~/HAYALET/screenshots/whois.png
-scrot -o ~/HAYALET/screenshots/filemanager.png
-scrot -o ~/HAYALET/screenshots/onionchat.png
-scrot -o ~/HAYALET/screenshots/search.png
+scrot -o ~/HAYALET/screenshots/boot.jpeg
+scrot -o ~/HAYALET/screenshots/menu.jpeg
+scrot -o ~/HAYALET/screenshots/nmap.jpeg
+scrot -o ~/HAYALET/screenshots/dirscan.jpeg
+scrot -o ~/HAYALET/screenshots/whois.jpeg
+scrot -o ~/HAYALET/screenshots/filemanager.jpeg
+scrot -o ~/HAYALET/screenshots/onionchat.jpeg
+scrot -o ~/HAYALET/screenshots/search.jpeg
 ```
 
 Ya da `import` (ImageMagick) ile:
 
 ```bash
-import -window root ~/HAYALET/screenshots/boot.png
+import -window root ~/HAYALET/screenshots/boot.jpeg
 ```
 
 ---
