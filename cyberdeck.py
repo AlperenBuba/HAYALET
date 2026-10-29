@@ -4,6 +4,7 @@ import subprocess, sys, os, threading, signal, time, math, pty, re, shlex
 import datetime, random, tempfile, requests
 from random import choice, randint
 from string import ascii_lowercase
+from dotenv import load_dotenv
 
 try:
     from stem import Signal
@@ -27,6 +28,8 @@ def bagimlilik_kontrol():
     except ImportError: eksik.append("PySocks — pip3 install PySocks")
     try: import stem
     except ImportError: eksik.append("stem — pip3 install stem")
+    try: import dotenv  # YENİ EKLENDİ
+    except ImportError: eksik.append("python-dotenv — pip3 install python-dotenv")
 
     if eksik:
         print("\n" + "="*60)
@@ -1991,7 +1994,7 @@ class OnionPage(BaseOnionPage):
     def start_process(self):
         if self.process: return
         self.log(f"\n--- {self.secili_mod} CHAT ---\n")
-        v = "/home/buba/onionshare-env/bin/onionshare-cli"
+        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
         self._sureci(f"PYTHONUNBUFFERED=1 {v} --chat" + (" --public" if self.secili_mod=="PUBLIC" else ""))
     def save_addr(self): super().save_addr("onionshare_chat.txt")
 
@@ -2001,8 +2004,9 @@ class ReceivePage(BaseOnionPage):
     def start_process(self):
         if self.process: return
         self.log(f"\n--- {self.secili_mod} RECEIVE ---\n")
-        dd = "/home/buba/received_files"; os.makedirs(dd, exist_ok=True)
-        v = "/home/buba/onionshare-env/bin/onionshare-cli"
+        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
+        dd = os.path.expanduser(os.getenv("RECEIVE_DIR", "~/received_files"))
+        os.makedirs(dd, exist_ok=True)
         self._sureci(f"PYTHONUNBUFFERED=1 {v} --receive --data-dir {dd}" + (" --public" if self.secili_mod=="PUBLIC" else ""))
     def save_addr(self): super().save_addr("onionshare_file_receive.txt")
 
@@ -2011,10 +2015,11 @@ class SendPage(BaseOnionPage):
         super().__init__(parent, controller, "FILE SEND"); self.log("Files in ~/send_files\n")
     def start_process(self):
         if self.process: return
-        sd = "/home/buba/send_files"; os.makedirs(sd, exist_ok=True)
+        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
+        sd = os.path.expanduser(os.getenv("SEND_DIR", "~/send_files"))
+        os.makedirs(sd, exist_ok=True)
         if not os.listdir(sd): self.log("\n[!] Empty dir!"); return
         self.log(f"\n--- {self.secili_mod} SEND ---\n")
-        v = "/home/buba/onionshare-env/bin/onionshare-cli"
         self._sureci(f"PYTHONUNBUFFERED=1 {v} {sd}" + (" --public" if self.secili_mod=="PUBLIC" else ""))
     def save_addr(self): super().save_addr("onionshare_file_send.txt")
 
