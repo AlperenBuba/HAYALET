@@ -2,9 +2,9 @@
 
 # 👻 HAYALET v1.0
 
-**Raspberry Pi Zero 2W için dokunmatik ekranlı, Tor destekli anonim OSINT cyberdeck.**
+**A touchscreen-enabled, Tor-powered anonymous OSINT cyberdeck for Raspberry Pi Zero 2W.**
 
-Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. OnionShare, Nmap, 13 OSINT aracı, çift panelli dosya yöneticisi ve daha fazlası tek bir Tkinter arayüzünde.
+A small, portable, palm-sized cyber reconnaissance tool. OnionShare, Nmap, 13 OSINT tools, a dual-pane file manager, and much more in a single Tkinter interface.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-green.svg)](https://www.python.org/)
@@ -12,12 +12,12 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
 
 ---
 
-## 📸 Galeri
+## 📸 Gallery
 
 <table>
   <tr>
     <td align="center"><b>Boot Screen</b><br><img src="screenshots/boot.jpeg" width="380"></td>
-    <td align="center"><b>Ana Menü</b><br><img src="screenshots/menu.jpeg" width="380"></td>
+    <td align="center"><b>Main Menu</b><br><img src="screenshots/menu.jpeg" width="380"></td>
   </tr>
   <tr>
     <td align="center"><b>Nmap Scanner</b><br><img src="screenshots/nmap.jpeg" width="380"></td>
@@ -33,81 +33,81 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
   </tr>
 </table>
 
-> **Not:** Tüm ekran görüntüleri `screenshots/` klasöründedir.
+> **Note:** All screenshots are located in the `screenshots/` folder.
 
 ---
 
-## ✨ Özellikler
+## ✨ Features
 
-### 🔐 Anonimlik
-- **Tor Entegrasyonu** — Otomatik `torrc` yapılandırması (ControlPort, TransPort, DNSPort)
-- **IP Rotasyonu** — Her N istekte otomatik yeni devre (`NEWNYM`)
-- **Tor'suz Mod** — Riskli ama hızlı, "Continue without Tor" seçeneği
-- **SOCKS5 Proxy** — OSINT araçları `socks5h://127.0.0.1:9050` üzerinden çalışır
+### 🔐 Anonymity
+- **Tor Integration** — Automatic `torrc` configuration (ControlPort, TransPort, DNSPort)
+- **IP Rotation** — Automatic circuit renewal every N requests (`NEWNYM`)
+- **Tor-less Mode** — Risky but fast, via "Continue without Tor"
+- **SOCKS5 Proxy** — All OSINT tools route through `socks5h://127.0.0.1:9050`
 
-### 🌐 Ağ Araçları
-- **Nmap Scanner** — 12 tarama modu
-- **Cihaz Keşfi** — Otomatik ağ taraması (hostname + IP çözümleme)
-- **Dir Scanner** — Baseline detection ile false positive filtreleme
-- **Wi-Fi Yönetimi** — SSID tarama, bağlanma, şifre gösterimi
+### 🌐 Network Tools
+- **Nmap Scanner** — 12 scan modes
+- **Device Discovery** — Automatic network sweep (hostname + IP resolution)
+- **Dir Scanner** — Baseline detection with false-positive filtering
+- **Wi-Fi Management** — Scan SSIDs, connect, view passwords
 
-### 🔍 OSINT (13 Araç)
-| Araç | Açıklama |
+### 🔍 OSINT (13 Tools)
+| Tool | Description |
 |---|---|
-| WHOIS | Domain kayıt bilgileri (RDAP) |
-| DNS Lookup | A, AAAA, MX, TXT, NS, CNAME |
-| Sub Enum | crt.sh üzerinden subdomain keşfi |
-| HTTP Headers | Sunucu header'ları |
-| SSL Cert | Sertifika geçmişi |
-| IP Info | Geo + ISP bilgisi |
-| Reverse IP | Aynı sunucudaki domain'ler |
-| Tech Stack | Framework/CMS tespiti |
-| Wayback | Arşiv snapshot'ları |
-| Robots.txt | Gizli dizinler |
-| Sitemap.xml | Site haritası |
-| Sec Headers | 6 güvenlik header kontrolü |
-| Port Check | Tek port testi (Tor üzerinden) |
+| WHOIS | Domain registration info (RDAP) |
+| DNS Lookup | A, AAAA, MX, TXT, NS, CNAME records |
+| Sub Enum | Subdomain discovery via crt.sh |
+| HTTP Headers | Server headers |
+| SSL Cert | Certificate history |
+| IP Info | Geo + ISP info |
+| Reverse IP | Domains sharing the same IP |
+| Tech Stack | Framework/CMS fingerprinting |
+| Wayback | Archive snapshots |
+| Robots.txt | Hidden paths |
+| Sitemap.xml | Site map |
+| Sec Headers | 6 security header checks |
+| Port Check | Single port probe (over Tor) |
 
 ### 🧅 OnionShare
 - Onion Chat, File Receive, File Send
-- PUBLIC/PRIVATE mod desteği
-- `.onion` adresi otomatik dosyaya kaydedilir
+- PUBLIC/PRIVATE mode support
+- `.onion` address automatically saved to file
 
-### 🗂️ Dosya Yönetimi
-- **Dual Pane File Manager** — Norton Commander tarzı
-- **USB Otomatik Algılama**
-- Kopyala, Taşı, Yeniden Adlandır, Sil, Yeni Dizin
+### 🗂️ File Management
+- **Dual-Pane File Manager** — Norton Commander style
+- **Auto USB Detection**
+- Copy, Move, Rename, Delete, New Folder
 
-### 🛠️ Yardımcı Araçlar
+### 🛠️ Utility Tools
 - MAC Changer, Analog Clock, Calculator, Speedtest, Snake
 
-### 🎨 Arayüz
-- 480×320 dokunmatik ekran için optimize
-- Sanal klavyeler (Wi-Fi, Nmap, File Manager, Search)
-- **Quick Launcher** — SEARCH butonu ile 26 özellik aranabilir
-- 500 satır log limiti (RAM dostu)
-- Tam ekran (kiosk) modu
-- **CLR LOGS** — OSINT, DirScan ve Nmap için tek dokunuşla log temizleme
+### 🎨 Interface
+- Optimized for 480×320 touchscreen
+- On-screen keyboards (Wi-Fi, Nmap, File Manager, Search)
+- **Quick Launcher** — Search across 26 features via SEARCH button
+- 500-line log limit (RAM-friendly)
+- Fullscreen (kiosk) mode
+- **CLR LOGS** — One-tap log cleanup for OSINT, DirScan, and Nmap
 
 ---
 
-## 🖥️ Donanım Gereksinimleri
+## 🖥️ Hardware Requirements
 
-| Bileşen | Minimum | Önerilen |
+| Component | Minimum | Recommended |
 |---|---|---|
 | **SBC** | Raspberry Pi Zero 2W | Raspberry Pi 4 (2GB+) |
-| **RAM** | 512 MB (zram aktif) | 1 GB+ |
-| **Depolama** | 8 GB USB flash | 16 GB+ USB flash |
-| **Ekran** | 3.5" TFT (480×320) | 5" HDMI dokunmatik |
+| **RAM** | 512 MB (with zram) | 1 GB+ |
+| **Storage** | 8 GB USB flash | 16 GB+ USB flash |
+| **Display** | 3.5" TFT (480×320) | 5" HDMI touchscreen |
 | **OS** | Raspberry Pi OS 64-bit Lite | Kali ARM / Debian |
 
-**Platform Notu:** Bu proje Linux (Raspberry Pi OS / Debian) için tasarlanmıştır. macOS veya Windows'ta çalıştırırsanız sadece OSINT araçları, Clock, Calculator ve Snake çalışır. Wi-Fi yönetimi, MAC Changer ve Nmap gibi Linux komutlarına bağımlı özellikler çalışmayacaktır.
+**Platform Note:** This project is designed for Linux (Raspberry Pi OS / Debian). If you run it on macOS or Windows, only the OSINT tools, Clock, Calculator, and Snake will work. Features depending on Linux commands (Wi-Fi management, MAC Changer, Nmap) will not function.
 
 ---
 
-## 🚀 Hızlı Kurulum (Önerilen)
+## 🚀 Quick Install (Recommended)
 
-Tüm bağımlılıkları otomatik kuran script. **PEP 668 uyumlu** — sistem Python'unu bozmaz, tüm paketleri `apt` ile kurar:
+Fully automated script. **PEP 668 compliant** — does not break system Python, installs all packages via `apt`:
 
 ```bash
 git clone https://github.com/AlperenBuba/HAYALET.git
@@ -117,33 +117,33 @@ chmod +x install.sh
 python3 cyberdeck.py
 ```
 
-`install.sh` şunları yapar:
-- Sistem paketlerini kurar (`tor`, `nmap`, `python3-tk`, `xserver-xorg`, vs.)
-- Python bağımlılıklarını `apt` ile kurar (PEP 668 uyumlu)
-- OnionShare venv oluşturur (`~/onionshare-env`)
-- Tor'u yapılandırır
-- Gerekli klasörleri oluşturur
-- `.env` dosyasını otomatik yazar
-- Zram'ı aktifleştirir
-- Kiosk modu için `.xinitrc` + `.bash_profile` ayarlar
-- `cyberdeck.py` içindeki eski yolları otomatik düzeltir
+`install.sh` does the following:
+- Installs system packages (`tor`, `nmap`, `python3-tk`, `xserver-xorg`, etc.)
+- Installs Python dependencies via `apt` (PEP 668-safe)
+- Creates OnionShare venv at `~/onionshare-env`
+- Configures Tor
+- Creates required directories
+- Auto-generates `.env`
+- Enables zram (with lzo fallback if lz4 fails)
+- Sets up kiosk mode (`.xinitrc` + `.bash_profile`)
+- Auto-fixes legacy paths in `cyberdeck.py`
 
-**Sorun çıkarsa:** `./check_deps.sh` ile hangi bağımlılığın eksik olduğunu gör.
+**If something breaks:** run `./check_deps.sh` to identify missing dependencies.
 
 ---
 
-## 📦 Manuel Kurulum
+## 📦 Manual Installation
 
-### 1. İşletim Sistemi
+### 1. Operating System
 
-**Raspberry Pi OS 64-bit Lite** (önerilen):
+**Raspberry Pi OS 64-bit Lite** (recommended):
 
 ```bash
-# Raspberry Pi Imager ile SD/USB'ye yaz
-# İlk açılışta: sudo raspi-config → Expand Filesystem
+# Flash to SD/USB with Raspberry Pi Imager
+# On first boot: sudo raspi-config → Expand Filesystem
 ```
 
-**Ekran sürücüsü** (3.5" TFT için):
+**Display driver** (for 3.5" TFT):
 
 ```bash
 git clone https://github.com/goodtft/LCD-show.git
@@ -152,7 +152,7 @@ sudo ./LCD35-show
 sudo reboot
 ```
 
-### 2. Sistem Paketleri
+### 2. System Packages
 
 ```bash
 sudo apt update
@@ -164,9 +164,9 @@ sudo apt install -y \
     xserver-xorg xinit x11-xserver-utils unclutter
 ```
 
-### 3. Python Bağımlılıkları
+### 3. Python Dependencies
 
-> ⚠️ **PEP 668 Uyarısı:** Raspberry Pi OS Bookworm/Trixie'de `pip3 install` sistem Python'una yazmaya çalıştığı için `externally-managed-environment` hatası verir. Paketleri `apt` ile kurun:
+> ⚠️ **PEP 668 Warning:** On Raspberry Pi OS Bookworm/Trixie, `pip3 install` writes to system Python and fails with `externally-managed-environment`. Install packages via `apt`:
 
 ```bash
 sudo apt install -y \
@@ -175,26 +175,26 @@ sudo apt install -y \
     python3-stem python3-dotenv
 ```
 
-Alternatif: `pip3 install --break-system-packages -r requirements.txt` (önerilmez, sistemi bozabilir).
+Alternative: `pip3 install --break-system-packages -r requirements.txt` (not recommended, may break your system).
 
 ### 4. OnionShare
 
 ```bash
-# Ev dizininde (taşınabilir)
+# In home directory (portable)
 python3 -m venv ~/onionshare-env
 ~/onionshare-env/bin/pip install --upgrade pip
 ~/onionshare-env/bin/pip install onionshare-cli
 ```
 
-**Not:** `install.sh` bu klasörü ev dizininde (`~/onionshare-env`) oluşturur. `.env` içindeki yol buna göre ayarlanır.
+**Note:** `install.sh` creates this folder in the home directory (`~/onionshare-env`). The `.env` file points to this path.
 
-### 5. Tor Yapılandırması
+### 5. Tor Configuration
 
 ```bash
 sudo nano /etc/tor/torrc
 ```
 
-Şu satırların yorumlu olmadığından emin ol:
+Make sure the following lines are uncommented:
 
 ```
 ControlPort 9051
@@ -205,7 +205,7 @@ VirtualAddrNetworkIPv4 10.192.0.0/10
 AutomapHostsOnResolve 1
 ```
 
-Sonra:
+Then:
 
 ```bash
 sudo systemctl enable tor
@@ -213,7 +213,7 @@ sudo systemctl restart tor
 sudo systemctl status tor
 ```
 
-### 6. Klasör Yapısı
+### 6. Directory Structure
 
 ```bash
 mkdir -p ~/cyberdeck_icons ~/wordlists ~/nmap_scans
@@ -221,31 +221,31 @@ mkdir -p ~/dirscan_logs ~/osint_logs
 mkdir -p ~/received_files ~/send_files ~/downloads
 ```
 
-**`~/cyberdeck_icons/`** içine `ghost.png` ekle (logo için).
+Add `ghost.jpg` inside **`~/cyberdeck_icons/`** (for the logo).
 
-**`~/wordlists/`** içine wordlist dosyaları ekleyebilirsin.
+You can add wordlists inside **`~/wordlists/`**.
 
-### 7. Yapılandırma (.env)
+### 7. Configuration (.env)
 
-`install.sh` çalıştırıldığında proje dizininde `.env` dosyası otomatik oluşturulur:
+When you run `install.sh`, a `.env` file is automatically created in the project directory:
 
 ```env
-ONIONSHARE_CLI=/home/kullanici/onionshare-env/bin/onionshare-cli
-RECEIVE_DIR=/home/kullanici/received_files
-SEND_DIR=/home/kullanici/send_files
-ICON_DIR=/home/kullanici/cyberdeck_icons
+ONIONSHARE_CLI=/home/user/onionshare-env/bin/onionshare-cli
+RECEIVE_DIR=/home/user/received_files
+SEND_DIR=/home/user/send_files
+ICON_DIR=/home/user/cyberdeck_icons
 ```
 
-Yolları değiştirmek isterseniz bu dosyayı düzenleyin. `.env` dosyası `.gitignore`'da olduğu için Git'e yüklenmez.
+Edit this file if you want to change paths. `.env` is `.gitignore`d and will not be committed.
 
-**Manuel kurulum yapıyorsanız** `.env.example` dosyasını kopyalayın:
+**For manual installs**, copy `.env.example`:
 
 ```bash
 cp .env.example .env
-nano .env  # kendi yollarınızı yazın
+nano .env  # edit paths as needed
 ```
 
-### 8. Çalıştırma
+### 8. Run
 
 ```bash
 python3 cyberdeck.py
@@ -253,40 +253,40 @@ python3 cyberdeck.py
 
 ---
 
-## 📖 Kullanım Rehberi
+## 📖 Usage Guide
 
-### 🎬 Başlangıç Ekranı
+### 🎬 Boot Screen
 
 ![Boot](screenshots/boot.jpeg)
 
-Program açıldığında **Boot Screen** karşılar:
+On launch, the **Boot Screen** appears:
 
-- **👻 Ghost logosu** — Ortada dönen animasyon
-- **WI-FI** — Sağ üstte, bağlı ağın SSID'sini gösterir
-- **CONNECT TO TOR** — Tor'u başlatır ve doğrular (önerilen)
-- **⚠ Continue without Tor** — Tor olmadan devam (riskli)
-- **SYSTEM** — Altta kırmızı buton, kapatma menüsü
+- **👻 Ghost logo** — Rotating animation in the center
+- **WI-FI** — Top right, shows current SSID
+- **CONNECT TO TOR** — Starts and verifies Tor (recommended)
+- **⚠ Continue without Tor** — Proceed without Tor (risky)
+- **SYSTEM** — Red button at the bottom (shutdown menu)
 
-**Öneri:** Normal kullanımda **CONNECT TO TOR** ile başla. Tor bağlanana kadar 30-60 saniye bekler, ardından ana menüye geçer.
+**Tip:** In normal use, start with **CONNECT TO TOR**. It waits up to 30-60 seconds before redirecting to the main menu.
 
 ---
 
-### 🏠 Ana Menü
+### 🏠 Main Menu
 
 ![Menu](screenshots/menu.jpeg)
 
-Ana menüde **6 sayfa** arasında gezinirsin:
+The main menu has **6 pages**:
 
-- **Sağ ok (›)** — Sonraki sayfa
-- **Sol ok (‹)** — Önceki sayfa
-- **SEARCH** — Hızlı arama (26 özellik aranabilir)
-- **WI-FI** — Wi-Fi yönetimi
-- **HAYALET v1.0** — Sol üstte sürüm bilgisi
-- **SYSTEM** — Altta kırmızı buton, kapatma
+- **Right arrow (›)** — Next page
+- **Left arrow (‹)** — Previous page
+- **SEARCH** — Quick search (26 features)
+- **WI-FI** — Wi-Fi management
+- **HAYALET v1.0** — Version info (top-left)
+- **SYSTEM** — Red button at the bottom
 
-#### Sayfa Düzeni
+#### Page Layout
 
-| Sayfa | Butonlar |
+| Page | Buttons |
 |---|---|
 | **1** | OnionShare Chat, File Receive, File Send, Nmap |
 | **2** | SMS Bomber*, MAC Changer, Dir Scan, WHOIS |
@@ -295,7 +295,7 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 | **5** | Robots.txt, Sitemap.xml, Sec Headers, Port Check |
 | **6** | File Manager, Clock, Calculator, Speedtest, Snake |
 
-*SMS Bomber varsayılan olarak **kapalıdır** (`ENABLE_SMS_BOMBER = False`).
+*SMS Bomber is disabled by default (`ENABLE_SMS_BOMBER = False`).
 
 ---
 
@@ -303,19 +303,19 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ![Search](screenshots/search.jpeg)
 
-**SEARCH** butonuna bas → tam ekran arama menüsü açılır:
+Tap **SEARCH** → full-screen search opens:
 
-1. **Üst:** Arama kutusu (yazdığın metin)
-2. **Orta:** Filtrelenmiş uygulama ızgarası
-3. **Alt:** Sanal klavye (qwerty)
+1. **Top:** Search box
+2. **Middle:** Filtered app grid
+3. **Bottom:** On-screen keyboard (qwerty)
 
-**Kullanım:**
-- Klavyeden `who` yaz → sadece **WHOIS** kalır
-- Butona tıkla → direkt o sayfaya gider
-- **X** butonu → aramayı kapat
-- **SPACE / DEL** → boşluk ve silme
+**How to use:**
+- Type `who` → only **WHOIS** remains
+- Tap a button → go to that page
+- **X** → close search
+- **SPACE / DEL** → space and backspace
 
-26 özellik arasında tek tuşla arama yapabilirsin.
+Search across 26 features with one tap.
 
 ---
 
@@ -323,29 +323,29 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ![Nmap](screenshots/nmap.jpeg)
 
-**Adım 1: Hedef Seç**
-- **AUTO SCAN** — Otomatik olarak tüm ağı tarar (`192.168.1.0/24`)
-- **CUSTOM TARGET** — Manuel IP gir veya cihaz seç
-- **CLEAR SAVED SCANS** — Eski taramaları sil (`~/nmap_scans/`)
+**Step 1: Pick Target**
+- **AUTO SCAN** — Automatically scans the whole subnet (`192.168.1.0/24`)
+- **CUSTOM TARGET** — Manually enter IP or pick a device
+- **CLEAR SAVED SCANS** — Delete old scans (`~/nmap_scans/`)
 
-**Adım 2: Tarama Modu Seç** (12 mod)
+**Step 2: Pick Scan Mode** (12 modes)
 
-| Mod | Komut | Kullanım |
+| Mode | Command | Use Case |
 |---|---|---|
-| **INTENSE** | `-A -T4` | Detaylı tarama |
-| **ALL PORTS** | `-p- -T4` | Tüm portlar (yavaş) |
-| **VULN** | `--script vuln` | Zafiyet taraması |
-| **STEALTH** | `-sS -T2 -f` | Gizli tarama |
-| **QUICK** | `-F -T4` | Hızlı (top 100) |
-| **OS+VER** | `-sV -O` | OS + servis tespiti |
-| **PING** | `-sn` | Sadece ping |
-| **UDP** | `-sU --top 50` | UDP portları |
-| **TRACEROUTE** | `--traceroute` | Rota takibi |
-| **DFLT SCRIPTS** | `-sC` | Varsayılan scriptler |
-| **ARP SCAN** | `-sn -PR` | ARP taraması |
-| **EVASION** | `-f -T2` | IDS atlatma |
+| **INTENSE** | `-A -T4` | Detailed scan |
+| **ALL PORTS** | `-p- -T4` | All ports (slow) |
+| **VULN** | `--script vuln` | Vulnerability scan |
+| **STEALTH** | `-sS -T2 -f` | Stealth scan |
+| **QUICK** | `-F -T4` | Fast (top 100) |
+| **OS+VER** | `-sV -O` | OS + service detection |
+| **PING** | `-sn` | Ping only |
+| **UDP** | `-sU --top 50` | UDP ports |
+| **TRACEROUTE** | `--traceroute` | Route tracing |
+| **DFLT SCRIPTS** | `-sC` | Default scripts |
+| **ARP SCAN** | `-sn -PR` | ARP scan |
+| **EVASION** | `-f -T2` | IDS evasion |
 
-**Çıktı:** `~/nmap_scans/nmap_YYYYMMDD_HHMMSS_mod.txt` — her tarama ayrı dosya.
+**Output:** `~/nmap_scans/nmap_YYYYMMDD_HHMMSS_mod.txt` — one file per scan.
 
 ---
 
@@ -353,71 +353,71 @@ Ana menüde **6 sayfa** arasında gezinirsin:
 
 ![Dir Scan](screenshots/dirscan.jpeg)
 
-**4 Aşamalı Wizard:**
+**4-Step Wizard:**
 
-1. **URL Gir** — `http://example.com` (veya sadece `example.com`)
-2. **Mod Seç** — QUICK (150 kelime) veya WORDLIST (dosya seç)
-3. **Bağlantı Seç** — DIRECT (hızlı) veya VIA TOR (anonim)
-4. **Sonuçları İzle**
+1. **Enter URL** — `http://example.com` (or just `example.com`)
+2. **Pick Mode** — QUICK (150 words) or WORDLIST (choose a file)
+3. **Pick Connection** — DIRECT (fast) or VIA TOR (anonymous)
+4. **Watch Results**
 
-**Wordlist Kaynakları:**
+**Wordlist Sources:**
 - `~/wordlists/`
 - `/usr/share/wordlists/` (Kali)
-- `./wordlists/` (proje dizini)
+- `./wordlists/` (project dir)
 
-**Baseline Detection:** Sunucu tüm yollara `200` dönerse, boyut filtresi ile false positive elenir.
+**Baseline Detection:** If the server returns `200` for all paths, a size filter removes false positives.
 
-**Loglar:** `~/dirscan_logs/YYYYMMDD_HHMMSS_domain.txt`
+**Logs:** `~/dirscan_logs/YYYYMMDD_HHMMSS_domain.txt`
 
 ---
 
-### 🔍 OSINT Araçları (13 Adet)
+### 🔍 OSINT Tools (13 total)
 
-Tüm OSINT araçları aynı şablonu kullanır:
+All OSINT tools share the same layout:
 
 ![WHOIS](screenshots/whois.jpeg)
 
-**Her Araçta:**
-- **Hedef girişi** — Domain, IP veya URL
-- **RUN** — Sorguyu başlat
-- **CLEAR** — Girişi temizle
-- **NEW ID** — Tor devresini yenile (IP değiştir)
-- **CLR LOGS** — Bu tool'a ait logları sil (sağ üst)
-- **Sanal klavye** — 4 satır (sayı + harf + özel karakter)
+**Each tool has:**
+- **Target input** — Domain, IP, or URL
+- **RUN** — Start the query
+- **CLEAR** — Clear input
+- **NEW ID** — Renew Tor circuit (new IP)
+- **CLR LOGS** — Delete this tool's logs (top-right)
+- **On-screen keyboard** — 4 rows (digits + letters + special chars)
 
-**Çıktı:** `~/osint_logs/{TOOL}_{tarih}_{hedef}.txt`
+**Output:** `~/osint_logs/{TOOL}_{date}_{target}.txt`
 
-#### Araçların Kullanımı
+#### Tool Descriptions
 
-- **WHOIS** → Domain sahibi, kayıt/bitiş tarihi, nameserver'lar
-- **DNS Lookup** → A, AAAA, MX, TXT, NS, CNAME kayıtları
-- **Sub Enum** → crt.sh üzerinden tüm subdomain'ler
+- **WHOIS** → Domain owner, registration/expiry, nameservers
+- **DNS Lookup** → A, AAAA, MX, TXT, NS, CNAME records
+- **Sub Enum** → All subdomains via crt.sh
 - **HTTP Headers** → Server, X-Powered-By, Set-Cookie
-- **SSL Cert** → Sertifika geçmişi, issuer, subject
-- **IP Info** → Ülke, şehir, ISP, ASN, koordinatlar
-- **Reverse IP** → Aynı IP'deki domain'ler
-- **Tech Stack** → WordPress, Nginx, PHP, jQuery tespiti
-- **Wayback** → En son arşiv tarihi + URL
-- **Robots.txt** → Disallow kuralları (gizli dizinler)
-- **Sitemap.xml** → Tüm URL'ler (SEO haritası)
-- **Sec Headers** → 6 güvenlik header kontrolü
-- **Port Check** → Port OPEN / CLOSED (Tor üzerinden)
+- **SSL Cert** → Certificate history, issuer, subject
+- **IP Info** → Country, city, ISP, ASN, coordinates
+- **Reverse IP** → Domains on the same IP
+- **Tech Stack** → WordPress, Nginx, PHP, jQuery detection
+- **Wayback** → Latest archive date + URL
+- **Robots.txt** → Disallow rules (hidden paths)
+- **Sitemap.xml** → All URLs (SEO map)
+- **Sec Headers** → 6 security header checks
+- **Port Check** → Port OPEN / CLOSED (over Tor)
 
 ---
 
-### 🗑️ Kayıt Temizleme (CLR LOGS)
+### 🗑️ Log Cleanup (CLR LOGS)
 
-OSINT araçları, **Dir Scan** ve **AI Chat** sayfalarında sağ üstte kırmızı **CLR LOGS** butonu bulunur.
+OSINT tools, **Dir Scan**, and **AI Chat** pages show a red **CLR LOGS** button in the top-right.
 
-**Nasıl çalışır:**
-1. Butona bas → onay dialogu açılır
-2. Silinecek dosya sayısı ve toplam boyut gösterilir
-3. **YES, DELETE** → `~/osint_logs/`, `~/dirscan_logs/` veya `~/ai_logs/` temizlenir
-4. **CANCEL** veya dışına tıkla → iptal
+**How it works:**
+1. Tap the button → confirmation dialog opens
+2. Shows file count and total size
+3. **YES, DELETE** → clears `~/osint_logs/`, `~/dirscan_logs/`, or `~/ai_logs/`
+4. **CANCEL** or tap outside → abort
 
-**Nmap için:** Aynı işlem **CLEAR SAVED SCANS** butonuyla yapılır (`~/nmap_scans/`).
+**For Nmap:** same action via **CLEAR SAVED SCANS** button (`~/nmap_scans/`).
 
-**Not:** Sadece `.txt` uzantılı dosyalar silinir. Alt klasörler ve farklı uzantılı dosyalar korunur.
+**Note:** Only `.txt` files are deleted. Subdirectories and other extensions are preserved.
 
 ---
 
@@ -425,24 +425,24 @@ OSINT araçları, **Dir Scan** ve **AI Chat** sayfalarında sağ üstte kırmız
 
 ![OnionChat](screenshots/onionchat.jpeg)
 
-3 mod:
+3 modes:
 
 **1. Onion Chat**
-- Tıkla → PUBLIC/PRIVATE seç
-- **START** → Tor üzerinden chat odası kurulur
-- `.onion` adresi `~/onionshare_chat.txt`'ye kaydedilir
+- Tap → choose PUBLIC/PRIVATE
+- **START** → creates a chat room over Tor
+- `.onion` address saved to `~/onionshare_chat.txt`
 
 **2. File Receive**
-- Tor üzerinden dosya al
-- Dosyalar `~/received_files/`'a indirilir
+- Receive files over Tor
+- Files downloaded to `~/received_files/`
 
 **3. File Send**
-- `~/send_files/` klasöründekileri paylaş
-- Boşsa: "Empty dir!" uyarısı
+- Share files from `~/send_files/`
+- If empty: "Empty dir!" warning
 
 **PUBLIC vs PRIVATE:**
-- **PUBLIC** — Herkes `.onion` adresiyle bağlanabilir
-- **PRIVATE** — Sadece davet edilenler (private key gerekir)
+- **PUBLIC** — Anyone with the `.onion` address can connect
+- **PRIVATE** — Invite only (requires a private key)
 
 ---
 
@@ -450,129 +450,129 @@ OSINT araçları, **Dir Scan** ve **AI Chat** sayfalarında sağ üstte kırmız
 
 ![File Manager](screenshots/filemanager.jpeg)
 
-**Dual-Pane** (Norton Commander tarzı):
+**Dual-pane** (Norton Commander style):
 
-- **Sol Panel** — USB bellek (otomatik)
-- **Sağ Panel** — Ev dizini (`~`)
-- **Aktif Panel** — Yeşil kenarlık
+- **Left panel** — USB drive (auto-detected)
+- **Right panel** — Home directory (`~`)
+- **Active panel** — Green border
 
-**Kontroller:**
-- **TAB** — Paneller arası geçiş
-- **OPEN** — Seçili dosya/dizini aç
-- **UP** — Üst dizine çık
-- **REFRESH** — Yenile
-- **COPY** — Karşı panele kopyala
-- **MOVE** — Karşı panele taşı
-- **RENAME** — Yeniden adlandır
-- **DELETE** — Sil (onaylı)
-- **NEW DIR** — Yeni klasör
+**Controls:**
+- **TAB** — Switch panels
+- **OPEN** — Open file/folder
+- **UP** — Go to parent directory
+- **REFRESH** — Reload
+- **COPY** — Copy to the other panel
+- **MOVE** — Move to the other panel
+- **RENAME** — Rename
+- **DELETE** — Delete (with confirmation)
+- **NEW DIR** — New folder
 
-**USB'ye Dön:** Üstteki sarı path yazısına tıkla.
-
----
-
-### 📶 Wi-Fi Yönetimi
-
-**Boot ekranı** veya **ana menü** üstündeki **WI-FI** butonuna tıkla:
-
-- **Ağ Listesi** — SSID + sinyal % + güvenlik
-- **Ağa Tıkla** — Şifre gir (sanal klavye)
-- **CONNECT** — Bağlan
-- **DISCONNECT** — Bağlantıyı kes
-- **SCAN NETWORKS** — Yeniden tara
-
-**Bağlı Ağ Bilgisi:** SSID + şifre ekranda gösterilir.
+**Return to USB:** tap the yellow path label at the top.
 
 ---
 
-### 🎮 Yardımcı Araçlar
+### 📶 Wi-Fi Management
 
-- **MAC Changer** — Rastgele MAC, `wlan0`'a uygular (Wi-Fi 3-5 saniye kopabilir)
-- **Clock** — Analog saat + dijital zaman
+Tap **WI-FI** on the boot screen or main menu:
+
+- **Network list** — SSID + signal % + security
+- **Tap a network** — Enter password (on-screen keyboard)
+- **CONNECT** — Connect
+- **DISCONNECT** — Drop connection
+- **SCAN NETWORKS** — Rescan
+
+**Connected Network Info:** SSID + password shown on screen.
+
+---
+
+### 🎮 Utility Tools
+
+- **MAC Changer** — Random MAC applied to `wlan0` (Wi-Fi drops for 3-5 seconds)
+- **Clock** — Analog clock + digital time
 - **Calculator** — Normal / Scientific / Programmer (HEX/DEC/OCT/BIN)
-- **Speedtest** — `speedtest-cli` ile hız ölçümü
-- **Snake** — Dokunmatik kontrollü klasik yılan oyunu
+- **Speedtest** — Speed test via `speedtest-cli`
+- **Snake** — Touch-controlled classic Snake game
 
 ---
 
-## 🐛 Sorun Giderme
+## 🐛 Troubleshooting
 
-### Hızlı Kontrol
+### Quick Check
 
 ```bash
 ./check_deps.sh
 ```
 
-Eksik bağımlılıkları gösterir.
+Shows missing dependencies.
 
-### Yaygın Sorunlar
+### Common Issues
 
-| Sorun | Çözüm |
+| Problem | Solution |
 |---|---|
 | `ModuleNotFoundError: No module named 'PIL'` | `sudo apt install python3-pil` |
-| `externally-managed-environment` | `pip3` yerine `sudo apt install python3-xyz` kullan |
+| `externally-managed-environment` | Use `sudo apt install python3-xyz` instead of `pip3` |
 | `Tor not running` | `sudo systemctl start tor` |
-| `Permission denied: nmap` | `sudo -v` (bir kez şifre gir) |
-| OnionShare boş çıkıyor | `ls ~/onionshare-env/bin/onionshare-cli` |
-| Wi-Fi listesi boş | `nmcli device status` |
-| Ekran donuyor | `free -h` → zram kontrol |
-| `socks5h` bağlanamıyor | `curl --socks5-hostname 127.0.0.1:9050 ifconfig.me` |
-| `ghost.png` görünmüyor | `~/cyberdeck_icons/ghost.png` var mı? |
-| Program açılmıyor | `python3 cyberdeck.py` çıktısını kontrol et |
+| `Permission denied: nmap` | `sudo -v` (enter password once) |
+| OnionShare page empty | `ls ~/onionshare-env/bin/onionshare-cli` |
+| Wi-Fi list empty | `nmcli device status` |
+| Screen freezes | `free -h` → check zram |
+| `socks5h` not connecting | `curl --socks5-hostname 127.0.0.1:9050 ifconfig.me` |
+| `ghost.jpg` not visible | `~/cyberdeck_icons/ghost.jpg` present? |
+| App won't launch | Check `python3 cyberdeck.py` output |
 
-### Ekran Açılmıyor / Siyah Ekran (Headless / Kiosk)
+### Screen Won't Turn On / Black Screen (Headless / Kiosk)
 
-Program açılışta otomatik başlamıyorsa:
+If the app doesn't auto-start:
 
-1. **Console Autologin aktif mi?**
+1. **Is Console Autologin enabled?**
    ```bash
    sudo raspi-config
    # System Options → Boot / Auto Login → Console Autologin
    ```
 
-2. **`.xinitrc` doğru mu?**
+2. **Is `.xinitrc` correct?**
    ```bash
    cat ~/.xinitrc
-   # exec python3 /home/<kullanıcı>/HAYALET/cyberdeck.py satırı olmalı
+   # should contain: exec python3 /home/<user>/HAYALET/cyberdeck.py
    ```
 
-3. **Manuel test:**
+3. **Manual test:**
    ```bash
    startx
-   # Ekranda hata varsa oku, yoksa program açılır
+   # read any error output, or the app launches
    ```
 
-4. **TFT ekran sürücüsü:**
+4. **TFT display driver:**
    ```bash
    sudo nano /boot/firmware/config.txt
-   # dtoverlay=tft35a:rotate=90 gibi satır ekle (ekran modeline göre)
+   # add dtoverlay=tft35a:rotate=90 (adjust for your display)
    ```
 
-### Zram Aktifleştirme
+### Enabling zram
 
 ```bash
 sudo apt install -y zram-tools
-# lz4 hatası verirse lzo kullan:
+# if lz4 fails, use lzo:
 sudo sed -i 's/^ALGO=lz4/ALGO=lzo/' /etc/default/zramswap
 sudo systemctl enable --now zramswap
 ```
 
-### Log Temizleme
+### Log Cleanup
 
 ```bash
-# CLI ile hızlı temizlik (program içindeki CLR LOGS butonları da kullanılabilir)
+# Fast CLI cleanup (CLR LOGS buttons inside the app also work)
 rm -rf ~/osint_logs/* ~/nmap_scans/* ~/dirscan_logs/*
 ```
 
-### `.env` Git'e Yüklendi mi?
+### Is `.env` Committed to Git?
 
 ```bash
 git check-ignore .env
-# .env yazıyorsa doğru (ignore ediliyor)
-# boşsa yanlış (.gitignore'a ekle)
+# prints .env if correctly ignored
+# prints nothing if not — add it to .gitignore
 ```
 
-`.gitignore` içinde şu satırlar olmalı:
+`.gitignore` should contain:
 
 ```
 .env
@@ -584,19 +584,19 @@ __pycache__/
 
 ---
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 HAYALET/
-├── cyberdeck.py          # Ana uygulama (~2900 satır)
-├── requirements.txt      # Python bağımlılıkları (manuel/venv için referans)
-├── install.sh            # Otomatik kurulum
-├── check_deps.sh         # Bağımlılık kontrolü
-├── .env.example          # .env şablonu
-├── README.md             # Bu dosya
+├── cyberdeck.py          # Main application (~2900 lines)
+├── requirements.txt      # Python deps (reference for manual/venv install)
+├── install.sh            # Automated installer
+├── check_deps.sh         # Dependency checker
+├── .env.example          # .env template
+├── README.md             # This file
 ├── LICENSE               # GPL v3
-├── .gitignore            # Git için
-└── screenshots/          # Ekran görüntüleri
+├── .gitignore            # Git ignore rules
+└── screenshots/          # Screenshots
     ├── boot.jpeg
     ├── menu.jpeg
     ├── nmap.jpeg
@@ -607,30 +607,30 @@ HAYALET/
     └── search.jpeg
 ```
 
-Kullanıcı dizininde:
+In the user's home directory:
 
 ```
-~/onionshare-env/        # OnionShare venv (ev dizininde)
-~/cyberdeck_icons/       # Ghost logosu
-~/wordlists/             # Wordlist'ler
-~/nmap_scans/            # Nmap çıktıları
-~/dirscan_logs/          # Dir Scan çıktıları
-~/osint_logs/            # OSINT çıktıları
-~/received_files/        # OnionShare alınan dosyalar
-~/send_files/            # OnionShare gönderilen dosyalar
+~/onionshare-env/        # OnionShare venv (in home directory)
+~/cyberdeck_icons/       # Ghost logo
+~/wordlists/             # Wordlists
+~/nmap_scans/            # Nmap outputs
+~/dirscan_logs/          # Dir Scan outputs
+~/osint_logs/            # OSINT outputs
+~/received_files/        # OnionShare received files
+~/send_files/            # OnionShare sent files
 ```
 
 ---
 
-## 🔧 Ekran Görüntüsü Alma
+## 🔧 Taking Screenshots
 
-Pi'de ekran görüntüsü almak için:
+On the Pi:
 
 ```bash
 sudo apt install -y scrot
 mkdir -p ~/HAYALET/screenshots
 
-# Al
+# Capture
 scrot -o ~/HAYALET/screenshots/boot.jpeg
 scrot -o ~/HAYALET/screenshots/menu.jpeg
 scrot -o ~/HAYALET/screenshots/nmap.jpeg
@@ -641,7 +641,7 @@ scrot -o ~/HAYALET/screenshots/onionchat.jpeg
 scrot -o ~/HAYALET/screenshots/search.jpeg
 ```
 
-Ya da `import` (ImageMagick) ile:
+Or with `import` (ImageMagick):
 
 ```bash
 import -window root ~/HAYALET/screenshots/boot.jpeg
@@ -649,65 +649,63 @@ import -window root ~/HAYALET/screenshots/boot.jpeg
 
 ---
 
-## 🤝 Katkıda Bulunma
+## 🤝 Contributing
 
-1. Fork et
-2. Feature branch oluştur (`git checkout -b feature/yeni-ozellik`)
-3. Commit et (`git commit -m 'Yeni özellik: ...'`)
-4. Push et (`git push origin feature/yeni-ozellik`)
-5. Pull Request aç
+1. Fork it
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit (`git commit -m 'New feature: ...'`)
+4. Push (`git push origin feature/new-feature`)
+5. Open a Pull Request
 
-**Kod stili:** PEP 8 uyumlu, yorumlar Türkçe, değişken isimleri anlamlı.
+**Code style:** PEP 8 compliant, meaningful variable names.
 
 ---
 
-## 📄 Lisans
+## 📄 License
 
-Bu proje **GNU General Public License v3.0** altında lisanslanmıştır.
+This project is licensed under the **GNU General Public License v3.0**.
 
 [![GPLv3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 
-Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+See the [LICENSE](LICENSE) file for details.
 
-**Özet:** Bu kodu kullanabilir, değiştirebilir ve dağıtabilirsiniz. Ancak türev çalışmalarınızı da **GPL v3** ile ve **açık kaynak** olarak paylaşmak zorundasınız. Kapalı kaynaklı ticari bir üründe kullanamazsınız.
+**Summary:** You may use, modify, and distribute this code. However, derivative works must also be shared under **GPL v3** and as **open source**. You may not use it in a closed-source commercial product.
 
-**GPL v2'den Farkları:**
-- **Patent koruması** — Katkıda bulunanlar patent haklarını otomatik olarak lisanslar
-- **Tivoization yasağı** — Donanım üreticileri GPL yazılımı kilitleyemez
-- **DRM önleme** — Kullanıcıların yazılımı değiştirme hakkı korunur
-- **Apache 2.0 uyumlu** — Apache 2.0 lisanslı kodla birleştirilebilir
-
----
-
-## ⚠️ Yasal Uyarı
-
-Bu proje **eğitim ve kişisel kullanım** için tasarlanmıştır. Yalnızca:
-
-- **Kendi** sunucularınızda
-- **Yasal izin aldığınız** hedeflerde
-- **CTF yarışmalarında**
-- **Bug bounty programlarında** (kapsamı okuyarak)
-
-kullanın.
-
-**İzinsiz tarama** Türkiye'de **TCK 243** (bilişim sistemine girme) ve **TCK 244** (bilişim sisteminin işleyişini engelleme/bozma) kapsamında suçtur.
-
-**Tor kullanmak** yasal sorumluluğu ortadan kaldırmaz. Sadece teknik izini gizler, yasal sorumluluğu **gizlemez**.
-
-Bu kodun kullanımından doğacak her türlü yasal sorumluluk **kullanıcıya aittir**.
+**How GPL v3 differs from v2:**
+- **Patent protection** — Contributors automatically grant patent rights
+- **Anti-tivoization** — Hardware vendors cannot lock down GPL software
+- **DRM prevention** — Users retain the right to modify software
+- **Apache 2.0 compatible** — Can be combined with Apache 2.0 licensed code
 
 ---
 
-## 🙏 Teşekkürler
+## ⚠️ Legal Notice
 
-- **Melisa** — Lehim işi
-- **Raspberry Pi Foundation** — Donanım
-- **Tor Project** — Anonimlik altyapısı
-- **OnionShare** — Güvenli dosya paylaşımı
-- **Nmap** — Ağ tarama
-- **crt.sh, rdap.org, ip-api.com, ipwho.is** — OSINT API'leri
-- **Tüm açık kaynak topluluğu**
+This project is intended for **educational and personal use**. Only use it against:
+
+- **Your own** servers
+- Targets for which you have **legal permission**
+- **CTF competitions**
+- **Bug bounty programs** (read the scope first)
+
+**Unauthorized scanning** is a criminal offense in Türkiye under **TCK 243** (accessing information systems) and **TCK 244** (disrupting information systems).
+
+**Using Tor** does not eliminate legal responsibility. It only conceals your technical trail, not your **legal liability**.
+
+Any legal responsibility arising from the use of this code rests solely with the **user**.
 
 ---
 
-**⭐ Projeyi beğendiyseniz yıldız verin!**
+## 🙏 Credits
+
+- **Melisa** — Soldering work
+- **Raspberry Pi Foundation** — Hardware
+- **Tor Project** — Anonymity infrastructure
+- **OnionShare** — Secure file sharing
+- **Nmap** — Network scanning
+- **crt.sh, rdap.org, ip-api.com, ipwho.is** — OSINT APIs
+- **The entire open-source community**
+
+---
+
+**⭐ If you like this project, give it a star!**
