@@ -16,7 +16,10 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
-PROJE_DIZINI=$(pwd)
+# Scriptin bulunduğu dizini kesin olarak tespit et (cyberdeck.py'nin yeri)
+PROJE_DIZINI=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+echo "Proje dizini: $PROJE_DIZINI"
 
 # ============================================================
 # 1. Sistem Paketleri
@@ -37,7 +40,6 @@ echo "✓ Sistem paketleri tamam"
 # 2. Python Bağımlılıkları (PEP 668 Hatası Çözüldü)
 # ============================================================
 echo "[2/7] Python bağımlılıkları kuruluyor..."
-# Modern Debian sistemlerde pip3 yerine apt kullanılması gerekir
 sudo apt install -y \
     python3-pil \
     python3-requests \
@@ -54,7 +56,7 @@ if [ ! -d "$PROJE_DIZINI/onionshare-env" ]; then
     python3 -m venv "$PROJE_DIZINI/onionshare-env"
     "$PROJE_DIZINI/onionshare-env/bin/pip" install --upgrade pip
     "$PROJE_DIZINI/onionshare-env/bin/pip" install onionshare-cli
-    echo "✓ OnionShare venv hazır (./onionshare-env)"
+    echo "✓ OnionShare venv hazır ($PROJE_DIZINI/onionshare-env)"
 else
     echo "  ⚠ ./onionshare-env zaten var, atlanıyor"
 fi
@@ -105,8 +107,12 @@ fi
 # ============================================================
 echo "[6/7] Zram aktifleştiriliyor ve eski yollar kontrol ediliyor..."
 if command -v zramctl >/dev/null 2>&1; then
-    sudo systemctl enable --now zramswap
-    echo "✓ Zram aktif"
+    # Zram hatasını önlemek için lz4 yerine lzo kullan
+    if [ -f /etc/default/zramswap ]; then
+        sudo sed -i 's/^ALGO=lz4/ALGO=lzo/' /etc/default/zramswap
+    fi
+    sudo systemctl enable --now zramswap || true
+    echo "✓ Zram aktif (veya uyarı verdi, sorun değil)"
 fi
 
 if [ -f "$PROJE_DIZINI/cyberdeck.py" ]; then
@@ -121,6 +127,8 @@ fi
 # ============================================================
 echo "[7/7] Kiosk modu ve ekran ayarları yapılandırılıyor..."
 
+# .xinitrc dosyası oluştur (X11 başladığında uygulamayı başlatır)
+# DİKKAT: PROJE_DIZINI değişkeni artık tam yolu garanti ediyor.
 cat <<EOF > ~/.xinitrc
 #!/bin/sh
 # Ekranın kararmasını ve uyku moduna girmesini engelle
@@ -131,7 +139,7 @@ xset s noblank
 # Fare imlecini ekrandan gizle
 unclutter -idle 0.1 -root &
 
-# Python uygulamasını tam ekran başlat
+# Python uygulamasını tam ekran başlat (Tam yol kullanılıyor)
 exec python3 $PROJE_DIZINI/cyberdeck.py
 EOF
 chmod +x ~/.xinitrc
@@ -155,12 +163,12 @@ echo ""
 echo "Sistemi yeniden başlattığınızda uygulama otomatik açılacaktır:"
 echo "  sudo reboot"
 echo ""
-echo "⚠️ ÖNEMLİ EKRAN NOTU:"
-echo "Eğer TFT ekranın görüntüsü ters, çözünürlüğü yanlış veya"
-echo "ekranın yarısı siyahsa, ekran sürücünün (overlay) ayarlanması gerekir."
-echo "Bunun için 'sudo nano /boot/firmware/config.txt' dosyasını açıp"
-echo "ekran modeline uygun 'dtoverlay=...' satırlarını eklemelisin."
-echo "Örneğin: dtoverlay=tft35a:rotate=90"
+echo "⚠️ EĞER OTOMATİK AÇILMAZSA:"
+echo "Lütfen 'sudo raspi-config' komutunu çalıştırıp şu ayarı yapın:"
+echo "  System Options -> Boot / Auto Login -> Console Autologin"
 echo ""
-echo "Sorun olursa README.md → Sorun Giderme bölümüne bak."
+echo "⚠️ ÖNEMLİ EKRAN NOTU:"
+echo "Eğer TFT ekranın görüntüsü ters veya çözünürlüğü yanlışsa,"
+echo "'sudo nano /boot/firmware/config.txt' dosyasına uygun"
+echo "'dtoverlay=...' satırını ekleyin (örn: dtoverlay=tft35a:rotate=90)."
 echo "================================================"
