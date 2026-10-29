@@ -394,7 +394,8 @@ class NmapPage(tk.Frame):
         d = os.path.expanduser("~/nmap_scans")
         if os.path.exists(d):
             for f in os.listdir(d):
-                if f.endswith(".txt"):
+                tool_prefix = re.sub(r'[^a-zA-Z0-9]', '_', self.TOOL_NAME) + "_"
+                if f.endswith(".txt") and f.startswith(tool_prefix):
                     try: os.remove(os.path.join(d, f))
                     except: pass
         self.hide_confirm_delete()
@@ -576,6 +577,7 @@ class DirScanPage(tk.Frame):
         tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
         tk.Button(tb, text="< BACK", bg="#111111", fg="#39ff14", font=("Helvetica",11,"bold"), bd=0, command=self.smart_back).pack(side="left", fill="y")
         tk.Label(tb, text="DIR SCANNER", bg="#111111", fg="#39ff14", font=("Helvetica",11,"bold")).pack(side="left", expand=True)
+        tk.Button(tb, text="CLR LOGS", bg="#111111", fg="#aa0000", font=("Helvetica",9,"bold"), bd=0, command=self.show_clear_dialog).pack(side="right", fill="y", padx=(0,6))
         self.input_frame = tk.Frame(self, bg="black")
         self.url_entry = tk.Entry(self.input_frame, font=("Helvetica",14), bg="#222", fg="white", bd=2, relief="solid")
         self.url_entry.place(x=10, y=5, width=460, height=30)
@@ -607,6 +609,45 @@ class DirScanPage(tk.Frame):
         self.log_area.pack(side="left", fill="both", expand=True); lsb.config(command=self.log_area.yview)
         make_readonly_text(self.log_area)
         self.btn_stop = tk.Button(self, text="STOP SCAN", font=("Helvetica",11,"bold"), bg="#aa0000", fg="white", command=self.stop_scan)
+    def show_clear_dialog(self):
+        if hasattr(self, 'clear_bg'): return
+        d = os.path.expanduser("~/dirscan_logs")
+        count = 0; total = 0
+        if os.path.exists(d):
+            for f in os.listdir(d):
+                if f.endswith(".txt"):
+                    try:
+                        count += 1
+                        total += os.path.getsize(os.path.join(d, f))
+                    except: pass
+        if count == 0:
+            self.log("[*] No logs to clear."); return
+        size_str = (f"{total/1024:.1f}KB" if total < 1024*1024 else f"{total/(1024*1024):.1f}MB")
+        self.clear_bg = tk.Frame(self, bg="#050505")
+        self.clear_bg.place(x=0, y=0, width=480, height=320)
+        self.clear_bg.bind("<Button-1>", lambda e: self.hide_clear_dialog())
+        ov = tk.Frame(self.clear_bg, bg="#111111", bd=2, relief="solid", highlightbackground="#aa0000", highlightthickness=2)
+        ov.place(relx=0.5, rely=0.5, anchor="center", width=360, height=170)
+        tk.Label(ov, text="CLEAR LOGS", bg="#111111", fg="#aa0000", font=("Helvetica",14,"bold")).pack(pady=(15,5))
+        tk.Label(ov, text=f"Delete {count} dirscan log(s)\n({size_str})?", bg="#111111", fg="white", font=("Helvetica",11), justify="center").pack(pady=5)
+        bf = tk.Frame(ov, bg="#111111"); bf.pack(pady=10)
+        tk.Button(bf, text="YES, DELETE", font=("Helvetica",11,"bold"), bg="#aa0000", fg="white", command=self._do_clear_logs, width=12).pack(side="left", padx=10)
+        tk.Button(bf, text="CANCEL", font=("Helvetica",11,"bold"), bg="#333", fg="white", command=self.hide_clear_dialog, width=12).pack(side="right", padx=10)
+
+    def hide_clear_dialog(self):
+        if hasattr(self, 'clear_bg'):
+            self.clear_bg.destroy(); del self.clear_bg
+
+    def _do_clear_logs(self):
+        d = os.path.expanduser("~/dirscan_logs")
+        count = 0
+        if os.path.exists(d):
+            for f in os.listdir(d):
+                if f.endswith(".txt"):
+                    try: os.remove(os.path.join(d, f)); count += 1
+                    except: pass
+        self.hide_clear_dialog()
+        self.log(f"[*] Cleared {count} log file(s).")
     def on_show(self): self.show_input(); self.url_entry.delete(0, tk.END)
     def show_input(self):
         for f in (self.mode_frame, self.wordlist_frame, self.tor_frame, self.log_frame): f.place_forget()
@@ -738,6 +779,8 @@ class DirScanPage(tk.Frame):
     def stop_scan(self):
         self.scanning = False; self.log("\n[!] Stopping..."); self.btn_stop.place_forget()
     def smart_back(self):
+        if hasattr(self, 'clear_bg'):
+            self.hide_clear_dialog(); return
         if self.log_frame.place_info():
             if self.scanning: self.stop_scan()
             self.show_input()
@@ -1088,6 +1131,7 @@ class BaseOSINTPage(tk.Frame):
         tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
         tk.Button(tb, text="< BACK", bg="#111111", fg="#39ff14", font=("Helvetica",11,"bold"), bd=0, command=self.smart_back).pack(side="left", fill="y")
         tk.Label(tb, text=self.TOOL_NAME, bg="#111111", fg="#aa0000", font=("Helvetica",11,"bold")).pack(side="left", expand=True)
+        tk.Button(tb, text="CLR LOGS", bg="#111111", fg="#aa0000", font=("Helvetica",9,"bold"), bd=0, command=self.show_clear_dialog).pack(side="right", fill="y", padx=(0,6))
         self.input_frame = tk.Frame(self, bg="black")
         self.target_entry = tk.Entry(self.input_frame, font=("Helvetica",14), bg="#222", fg="white", bd=2, relief="solid")
         self.target_entry.place(x=10, y=5, width=460, height=30)
@@ -1102,12 +1146,53 @@ class BaseOSINTPage(tk.Frame):
         self.log_area = tk.Text(self.log_frame, bg="black", fg="#39ff14", font=("Helvetica",10), bd=0, padx=5, pady=5, yscrollcommand=sb.set, wrap="word", state=tk.DISABLED)
         self.log_area.pack(side="left", fill="both", expand=True); sb.config(command=self.log_area.yview)
         make_readonly_text(self.log_area)
+    def show_clear_dialog(self):
+        if hasattr(self, 'clear_bg'): return
+        d = os.path.expanduser("~/osint_logs")
+        count = 0; total = 0
+        if os.path.exists(d):
+            for f in os.listdir(d):
+                if f.endswith(".txt"):
+                    try:
+                        count += 1
+                        total += os.path.getsize(os.path.join(d, f))
+                    except: pass
+        if count == 0:
+            self.log("[*] No logs to clear."); return
+        size_str = (f"{total/1024:.1f}KB" if total < 1024*1024 else f"{total/(1024*1024):.1f}MB")
+        self.clear_bg = tk.Frame(self, bg="#050505")
+        self.clear_bg.place(x=0, y=0, width=480, height=320)
+        self.clear_bg.bind("<Button-1>", lambda e: self.hide_clear_dialog())
+        ov = tk.Frame(self.clear_bg, bg="#111111", bd=2, relief="solid", highlightbackground="#aa0000", highlightthickness=2)
+        ov.place(relx=0.5, rely=0.5, anchor="center", width=360, height=170)
+        tk.Label(ov, text="CLEAR LOGS", bg="#111111", fg="#aa0000", font=("Helvetica",14,"bold")).pack(pady=(15,5))
+        tk.Label(ov, text=f"Delete {count} {self.TOOL_NAME} log(s)\n({size_str})?", bg="#111111", fg="white", font=("Helvetica",11), justify="center").pack(pady=5)
+        bf = tk.Frame(ov, bg="#111111"); bf.pack(pady=10)
+        tk.Button(bf, text="YES, DELETE", font=("Helvetica",11,"bold"), bg="#aa0000", fg="white", command=self._do_clear_logs, width=12).pack(side="left", padx=10)
+        tk.Button(bf, text="CANCEL", font=("Helvetica",11,"bold"), bg="#333", fg="white", command=self.hide_clear_dialog, width=12).pack(side="right", padx=10)
+
+    def hide_clear_dialog(self):
+        if hasattr(self, 'clear_bg'):
+            self.clear_bg.destroy(); del self.clear_bg
+
+    def _do_clear_logs(self):
+        d = os.path.expanduser("~/osint_logs")
+        count = 0
+        if os.path.exists(d):
+            for f in os.listdir(d):
+                if f.endswith(".txt"):
+                    try: os.remove(os.path.join(d, f)); count += 1
+                    except: pass
+        self.hide_clear_dialog()
+        self.log(f"[*] Cleared {count} log file(s).")
     def on_show(self):
         self.show_input(); self.target_entry.delete(0, tk.END)
     def show_input(self):
         self.log_frame.place_forget()
         self.input_frame.place(x=0, y=30, width=480, height=290)
     def smart_back(self):
+        if hasattr(self, 'clear_bg'):
+            self.hide_clear_dialog(); return
         if self.log_frame.place_info(): self.show_input()
         else: self.controller.go_back()
     def create_keyboard(self):
