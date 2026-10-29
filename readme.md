@@ -1,4 +1,5 @@
 <img src="/cyberdeck_icons/ghost.jpg">
+
 # 👻 HAYALET v1.0
 
 **Raspberry Pi Zero 2W için dokunmatik ekranlı, Tor destekli anonim OSINT cyberdeck.**
