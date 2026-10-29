@@ -31,8 +31,7 @@ Küçük, taşınabilir, avuç içi büyüklüğünde bir siber keşif aracı. O
   </tr>
 </table>
 
-> **Not:** Ekran görüntüleri `screenshots/` klasörüne eklenmelidir. 
-> `scrot -o ~/hayalet/screenshots/boot.png` ile alabilirsin.
+> **Not:** Tüm Ekran görüntüleri `screenshots/` klasöründedir. Diğer ekran görüntüleri için `screenshots/` klasörünü kontrol edin.
 
 ---
 
