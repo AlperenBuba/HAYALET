@@ -28,16 +28,22 @@ sudo apt install -y \
     python3-pil python3-pil.imagetk \
     tor proxychains4 nmap network-manager wireless-tools \
     curl git speedtest-cli zram-tools \
-    xserver-xorg xinit x11-xserver-utils unclutter
+    xserver-xorg xinit x11-xserver-utils unclutter \
+    build-essential libssl-dev libffi-dev python3-dev
 
 echo "✓ Sistem paketleri tamam"
 
 # ============================================================
-# 2. Python Bağımlılıkları
+# 2. Python Bağımlılıkları (PEP 668 Hatası Çözüldü)
 # ============================================================
 echo "[2/7] Python bağımlılıkları kuruluyor..."
-pip3 install --upgrade pip
-pip3 install Pillow requests PySocks stem python-dotenv
+# Modern Debian sistemlerde pip3 yerine apt kullanılması gerekir
+sudo apt install -y \
+    python3-pil \
+    python3-requests \
+    python3-socks \
+    python3-stem \
+    python3-dotenv
 echo "✓ Python paketleri tamam"
 
 # ============================================================
@@ -95,7 +101,7 @@ else
 fi
 
 # ============================================================
-# 6. Zram ve Yol Düzeltmesi (Güvenlik Önlemi)
+# 6. Zram ve Yol Düzeltmesi
 # ============================================================
 echo "[6/7] Zram aktifleştiriliyor ve eski yollar kontrol ediliyor..."
 if command -v zramctl >/dev/null 2>&1; then
@@ -103,7 +109,6 @@ if command -v zramctl >/dev/null 2>&1; then
     echo "✓ Zram aktif"
 fi
 
-# Eğer kodda hala "/home/buba/" gibi eski sabit yollar kaldıysa düzelt
 if [ -f "$PROJE_DIZINI/cyberdeck.py" ]; then
     if grep -q "/home/buba/" "$PROJE_DIZINI/cyberdeck.py"; then
         sed -i "s|/home/buba/|$HOME/|g" "$PROJE_DIZINI/cyberdeck.py"
@@ -116,7 +121,6 @@ fi
 # ============================================================
 echo "[7/7] Kiosk modu ve ekran ayarları yapılandırılıyor..."
 
-# .xinitrc dosyası oluştur (X11 başladığında uygulamayı başlatır)
 cat <<EOF > ~/.xinitrc
 #!/bin/sh
 # Ekranın kararmasını ve uyku moduna girmesini engelle
@@ -124,7 +128,7 @@ xset s off
 xset -dpms
 xset s noblank
 
-# Fare imlecini ekrandan gizle (dokunmatik/TFT ekranlar için)
+# Fare imlecini ekrandan gizle
 unclutter -idle 0.1 -root &
 
 # Python uygulamasını tam ekran başlat
@@ -132,7 +136,6 @@ exec python3 $PROJE_DIZINI/cyberdeck.py
 EOF
 chmod +x ~/.xinitrc
 
-# Sistem açıldığında (tty1 konsolunda) otomatik olarak 'startx' çalıştır
 if ! grep -q "startx" ~/.bash_profile 2>/dev/null; then
     echo "" >> ~/.bash_profile
     echo "# HAYALET Kiosk Modu Başlatıcı" >> ~/.bash_profile
