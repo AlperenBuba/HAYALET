@@ -29,7 +29,7 @@ def bagimlilik_kontrol():
     except ImportError: eksik.append("PySocks — pip3 install PySocks")
     try: import stem
     except ImportError: eksik.append("stem — pip3 install stem")
-    try: import dotenv  # YENİ EKLENDİ
+    try: import dotenv
     except ImportError: eksik.append("python-dotenv — pip3 install python-dotenv")
 
     if eksik:
@@ -147,12 +147,58 @@ class GhostDeckApp(tk.Tk):
         self.shutdown_overlay_bg.place(x=0, y=0, width=480, height=320)
         self.shutdown_overlay_bg.bind("<Button-1>", lambda e: self.close_shutdown_dialog())
         so = tk.Frame(self.shutdown_overlay_bg, bg="#111111", bd=2, relief="solid", highlightbackground="#aa0000", highlightthickness=2)
-        so.place(relx=0.5, rely=0.5, anchor="center", width=360, height=150)
-        tk.Label(so, text="SYSTEM ACTION", bg="#111111", fg="#aa0000", font=("Helvetica",14,"bold")).pack(pady=(15,10))
-        bf = tk.Frame(so, bg="#111111"); bf.pack(pady=10)
-        tk.Button(bf, text="TO TTY", font=("Helvetica",11,"bold"), bg="#1a1a1a", fg="#39ff14", command=lambda: (self.close_shutdown_dialog(), sys.exit(0)), width=8).pack(side="left", padx=5)
-        tk.Button(bf, text="RESTART", font=("Helvetica",11,"bold"), bg="#cc8800", fg="white", command=lambda: (self.close_shutdown_dialog(), subprocess.run("sudo reboot", shell=True)), width=8).pack(side="left", padx=5)
-        tk.Button(bf, text="POWER OFF", font=("Helvetica",11,"bold"), bg="#aa0000", fg="white", command=lambda: (self.close_shutdown_dialog(), subprocess.run("sudo poweroff", shell=True)), width=8).pack(side="right", padx=5)
+        so.place(relx=0.5, rely=0.5, anchor="center", width=380, height=200)
+        tk.Label(so, text="SYSTEM ACTION", bg="#111111", fg="#aa0000", font=("Helvetica",14,"bold")).pack(pady=(10,5))
+
+        # Sürüm bilgisi (git commit hash)
+        try:
+            commit = subprocess.run(["git", "-C", os.path.dirname(os.path.abspath(__file__)), "rev-parse", "--short", "HEAD"],
+                                    capture_output=True, text=True, timeout=3).stdout.strip() or "?"
+        except: commit = "?"
+        tk.Label(so, text=f"Version: {commit}", bg="#111111", fg="#888", font=("Helvetica",9)).pack(pady=(0,8))
+
+        bf1 = tk.Frame(so, bg="#111111"); bf1.pack(pady=3)
+        tk.Button(bf1, text="TO TTY", font=("Helvetica",11,"bold"), bg="#1a1a1a", fg="#39ff14", command=lambda: (self.close_shutdown_dialog(), sys.exit(0)), width=8).pack(side="left", padx=5)
+        tk.Button(bf1, text="RESTART", font=("Helvetica",11,"bold"), bg="#cc8800", fg="white", command=lambda: (self.close_shutdown_dialog(), subprocess.run("sudo reboot", shell=True)), width=8).pack(side="left", padx=5)
+        tk.Button(bf1, text="POWER OFF", font=("Helvetica",11,"bold"), bg="#aa0000", fg="white", command=lambda: (self.close_shutdown_dialog(), subprocess.run("sudo poweroff", shell=True)), width=8).pack(side="left", padx=5)
+
+        bf2 = tk.Frame(so, bg="#111111"); bf2.pack(pady=(8,10))
+        tk.Button(bf2, text="🔄 CHECK UPDATES", font=("Helvetica",10,"bold"), bg="#005500", fg="white", command=self._run_update, width=20).pack()
+
+    def _run_update(self):
+        """update.sh'i arka planda çalıştır, sonucu toast gibi göster."""
+        # Mini toast penceresi
+        toast = tk.Frame(self, bg="#050505"); toast.place(x=0, y=0, width=480, height=320)
+        ov = tk.Frame(toast, bg="#111111", bd=2, relief="solid", highlightbackground="#39ff14", highlightthickness=2)
+        ov.place(relx=0.5, rely=0.5, anchor="center", width=360, height=120)
+        lbl = tk.Label(ov, text="Güncelleme kontrol ediliyor...", bg="#111111", fg="#39ff14", font=("Helvetica",11,"bold"))
+        lbl.pack(pady=(30,10))
+        status = tk.Label(ov, text="", bg="#111111", fg="yellow", font=("Helvetica",9))
+        status.pack()
+
+        def worker():
+            proje = os.path.dirname(os.path.abspath(__file__))
+            script = os.path.join(proje, "update.sh")
+            try:
+                r = subprocess.run(["bash", script, "--quiet"], capture_output=True, text=True, timeout=60)
+                out = r.stdout.strip()
+                if "Güncellendi" in out or "Güncel" in out:
+                    if "Güncellendi" in out:
+                        self.after(0, lambda: lbl.config(text="✓ Güncellendi!", fg="#39ff14"))
+                        self.after(0, lambda: status.config(text="Yeniden başlatılıyor..."))
+                        time.sleep(2)
+                        self.after(0, lambda: os.system("sudo reboot"))
+                    else:
+                        self.after(0, lambda: lbl.config(text="✓ Zaten güncel", fg="#39ff14"))
+                else:
+                    msg = out.split("\n")[-1] if out else "Bilinmeyen hata"
+                    self.after(0, lambda: lbl.config(text=f"⚠ {msg[:40]}", fg="#cc8800"))
+            except Exception as e:
+                self.after(0, lambda: lbl.config(text=f"⚠ {str(e)[:40]}", fg="#aa0000"))
+            finally:
+                self.after(3000, toast.destroy)
+
+        threading.Thread(target=worker, daemon=True).start()
     def close_shutdown_dialog(self):
         if hasattr(self, 'shutdown_overlay_bg'): self.shutdown_overlay_bg.destroy(); del self.shutdown_overlay_bg
 
@@ -398,8 +444,7 @@ class NmapPage(tk.Frame):
         d = os.path.expanduser("~/nmap_scans")
         if os.path.exists(d):
             for f in os.listdir(d):
-                tool_prefix = re.sub(r'[^a-zA-Z0-9]', '_', self.TOOL_NAME) + "_"
-                if f.endswith(".txt") and f.startswith(tool_prefix):
+                if f.endswith(".txt"):
                     try: os.remove(os.path.join(d, f))
                     except: pass
         self.hide_confirm_delete()
@@ -1151,18 +1196,27 @@ class BaseOSINTPage(tk.Frame):
         self.log_area.pack(side="left", fill="both", expand=True); sb.config(command=self.log_area.yview)
         make_readonly_text(self.log_area)
     def show_clear_dialog(self):
-        if hasattr(self, 'clear_bg'): return
+        # Bozuk state temizliği
+        if hasattr(self, 'clear_bg'):
+            try: self.clear_bg.destroy()
+            except: pass
+            try: del self.clear_bg
+            except: pass
+
         d = os.path.expanduser("~/osint_logs")
+        # Her tool sadece kendi loglarını saysın
+        tool_prefix = re.sub(r'[^a-zA-Z0-9]', '_', self.TOOL_NAME) + "_"
         count = 0; total = 0
         if os.path.exists(d):
             for f in os.listdir(d):
-                if f.endswith(".txt"):
+                if f.endswith(".txt") and f.startswith(tool_prefix):
                     try:
                         count += 1
                         total += os.path.getsize(os.path.join(d, f))
                     except: pass
         if count == 0:
-            self.log("[*] No logs to clear."); return
+            self._show_toast(f"No {self.TOOL_NAME} logs to clear.")
+            return
         size_str = (f"{total/1024:.1f}KB" if total < 1024*1024 else f"{total/(1024*1024):.1f}MB")
         self.clear_bg = tk.Frame(self, bg="#050505")
         self.clear_bg.place(x=0, y=0, width=480, height=320)
@@ -1181,24 +1235,43 @@ class BaseOSINTPage(tk.Frame):
 
     def _do_clear_logs(self):
         d = os.path.expanduser("~/osint_logs")
+        tool_prefix = re.sub(r'[^a-zA-Z0-9]', '_', self.TOOL_NAME) + "_"
         count = 0
         if os.path.exists(d):
             for f in os.listdir(d):
-                if f.endswith(".txt"):
+                if f.endswith(".txt") and f.startswith(tool_prefix):
                     try: os.remove(os.path.join(d, f)); count += 1
                     except: pass
         self.hide_clear_dialog()
-        self.log(f"[*] Cleared {count} log file(s).")
+        self._show_toast(f"Cleared {count} {self.TOOL_NAME} log(s).")
+
     def on_show(self):
         self.show_input(); self.target_entry.delete(0, tk.END)
+
     def show_input(self):
         self.log_frame.place_forget()
         self.input_frame.place(x=0, y=30, width=480, height=290)
+
     def smart_back(self):
         if hasattr(self, 'clear_bg'):
-            self.hide_clear_dialog(); return
-        if self.log_frame.place_info(): self.show_input()
-        else: self.controller.go_back()
+            self.hide_clear_dialog()
+            return
+        if self.log_frame.place_info():
+            self.show_input()
+        else:
+            self.controller.go_back()
+
+    def _show_toast(self, msg):
+        """Kısa süreliğine ekranda mesaj göster (input ekranındayken de görünür)."""
+        try:
+            t = tk.Frame(self, bg="#111111", bd=1, relief="solid",
+                         highlightbackground="#39ff14", highlightthickness=1)
+            t.place(relx=0.5, rely=0.88, anchor="center", width=400, height=36)
+            tk.Label(t, text=msg, bg="#111111", fg="#39ff14",
+                     font=("Helvetica",10,"bold")).pack(expand=True, fill="both")
+            self.after(2500, lambda: t.destroy() if t.winfo_exists() else None)
+        except: pass
+
     def create_keyboard(self):
         for row in ["1234567890","qwertyuiop","asdfghjkl","zxcvbnm",[".", "-", "/", ":", "DEL", "CLR"]]:
             f = tk.Frame(self.keyboard_frame, bg="black"); f.pack(side="top", fill="x", expand=True)
@@ -1207,10 +1280,13 @@ class BaseOSINTPage(tk.Frame):
                 elif ch=="CLR": b = tk.Button(f, text="CLR", command=lambda: self.target_entry.delete(0, tk.END), bg="#333", fg="white", font=("Helvetica",11,"bold"))
                 else: b = tk.Button(f, text=ch, command=lambda c=ch: self.add_char(c), bg="#222", fg="#39ff14", font=("Helvetica",14,"bold"))
                 b.pack(side="left", fill="both", expand=True, padx=1, pady=1)
+
     def add_char(self, ch): self.target_entry.insert(tk.END, ch)
+
     def del_char(self):
         c = self.target_entry.get()
         if c: self.target_entry.delete(len(c)-1, tk.END)
+
     def _get(self, url, **kw):
         try:
             import socket as sock
@@ -1219,6 +1295,7 @@ class BaseOSINTPage(tk.Frame):
         kw.setdefault("timeout", 30); kw.setdefault("verify", False)
         kw.setdefault("headers", {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
         return requests.get(url, proxies={"http":"socks5h://127.0.0.1:9050","https":"socks5h://127.0.0.1:9050"}, **kw)
+    
     def _get_json(self, url, **kw):
         r = self._get(url, **kw)
         if r.status_code != 200:
@@ -1229,6 +1306,7 @@ class BaseOSINTPage(tk.Frame):
         try: return r.json()
         except ValueError as e:
             raise Exception(f"JSON parse failed: {e} | Body: {r.text[:200]}")
+        
     def _rotate(self):
         if TOR_AVAILABLE:
             def run():
@@ -1237,6 +1315,7 @@ class BaseOSINTPage(tk.Frame):
                         c.authenticate(); c.signal(Signal.NEWNYM); time.sleep(1.5)
                 except: pass
             threading.Thread(target=run, daemon=True).start()
+
     def _start(self):
         t = self.target_entry.get().strip()
         if not t: return
@@ -1271,6 +1350,7 @@ class BaseOSINTPage(tk.Frame):
                 self._save_output()
                 self.log(f"\n[*] Saved: {self.log_file_path}")
         threading.Thread(target=worker, daemon=True).start()
+
     def _save_output(self):
         if not self.log_file_path: return
         try:
@@ -1278,7 +1358,9 @@ class BaseOSINTPage(tk.Frame):
                 f.write("".join(self.output_buffer))
         except Exception as e:
             print(f"[OSINT] Save error: {e}")
+
     def run_tool(self, target): raise NotImplementedError
+    
     def log(self, m):
         self.output_buffer.append(m + "\n")
         def _l():
@@ -1672,7 +1754,7 @@ class MainMenu(tk.Frame):
     APPS = [
         ("OnionShare Chat", "OnionPage"), ("File Receive", "ReceivePage"),
         ("File Send", "SendPage"), ("Nmap", "NmapPage"),
-        ("SMS Bomber", "SmsBomberPage"), ("MAC Changer", "_MAC_"),
+        ("MAC Changer", "_MAC_"),
         ("Dir Scan", "DirScanPage"), ("File Manager", "FileManagerPage"),
         ("WHOIS", "WHOISPage"), ("DNS Lookup", "DNSPage"),
         ("Sub Enum", "SubEnumPage"), ("HTTP Headers", "HTTPHeadersPage"),
@@ -2005,7 +2087,7 @@ class ReceivePage(BaseOnionPage):
     def start_process(self):
         if self.process: return
         self.log(f"\n--- {self.secili_mod} RECEIVE ---\n")
-        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
+        v = os.getenv("ONIONSHARE_CLI", os.path.expanduser("~/onionshare-env/bin/onionshare-cli"))
         dd = os.path.expanduser(os.getenv("RECEIVE_DIR", "~/received_files"))
         os.makedirs(dd, exist_ok=True)
         self._sureci(f"PYTHONUNBUFFERED=1 {v} --receive --data-dir {dd}" + (" --public" if self.secili_mod=="PUBLIC" else ""))
