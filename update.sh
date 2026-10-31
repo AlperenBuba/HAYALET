@@ -4,8 +4,6 @@
 # Kullanım: bash update.sh [--restart] [--quiet]
 # ============================================================
 
-set -e
-
 PROJE_DIZINI=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 LOG_FILE="$PROJE_DIZINI/update.log"
 RESTART=0
@@ -42,13 +40,7 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
-# --- 4) Yerel değişiklikleri stash'le (güvenlik) ---
-if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-    log "⚠ Yerel değişiklik var, stash'leniyor..."
-    git stash push -m "auto-update-$(date +%s)" >>"$LOG_FILE" 2>&1 || true
-fi
-
-# --- 5) Uzak repoyu kontrol et ---
+# --- 4) Uzak repoyu kontrol et ---
 log "→ GitHub kontrol ediliyor..."
 git fetch --quiet origin 2>>"$LOG_FILE" || {
     log "✗ git fetch başarısız"
@@ -63,36 +55,59 @@ if [ -z "$REMOTE" ]; then
     exit 1
 fi
 
+# --- 5) Güncel mi? (STASH'E DOKUNMADAN) ---
 if [ "$LOCAL" = "$REMOTE" ]; then
-    log "✓ Zaten güncel ($LOCAL)"
+    log "✓ Zaten güncel (${LOCAL:0:7})"
     [ $QUIET -eq 0 ] && echo "Güncel: $LOCAL"
     exit 0
 fi
 
-# --- 6) Güncellemeyi uygula ---
-log "→ Güncelleme bulundu: ${LOCAL:0:7} → ${REMOTE:0:7}"
-git pull --quiet origin $(git rev-parse --abbrev-ref HEAD) >>"$LOG_FILE" 2>&1 || {
-    log "✗ git pull başarısız"
-    exit 1
-}
-NEW=$(git rev-parse HEAD)
-log "✓ Güncellendi: ${NEW:0:7}"
+# --- 6) GÜNCELLEME VAR — şimdi yedekle ---
+STASHED=0
+if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    log "⚠ Yerel değişiklik var, stash'leniyor..."
+    if git stash push -m "auto-update-$(date +%s)" >>"$LOG_FILE" 2>&1; then
+        STASHED=1
+    fi
+fi
 
-# --- 7) Bağımlılıklar değiştiyse yeniden kur ---
+# --- 7) Güncellemeyi uygula ---
+log "→ Güncelleme: ${LOCAL:0:7} → ${REMOTE:0:7}"
+if git pull --quiet origin "$(git rev-parse --abbrev-ref HEAD)" >>"$LOG_FILE" 2>&1; then
+    NEW=$(git rev-parse HEAD)
+    log "✓ Güncellendi: ${NEW:0:7}"
+
+    # 7b) Stash'i geri yükle
+    if [ "$STASHED" -eq 1 ]; then
+        if git stash pop >>"$LOG_FILE" 2>&1; then
+            log "✓ Yerel değişiklikler geri yüklendi."
+        else
+            log "⚠ Stash çakıştı, manuel çözüm gerekli: git stash list"
+        fi
+    fi
+else
+    log "✗ git pull başarısız"
+    # Pull başarısız olsa bile stash'i geri yükle (veri kaybı olmasın)
+    if [ "$STASHED" -eq 1 ]; then
+        git stash pop >>"$LOG_FILE" 2>&1 || true
+        log "↩ Yerel değişiklikler geri yüklendi (pull başarısızdı)."
+    fi
+    exit 1
+fi
+
+# --- 8) Bağımlılıklar değiştiyse yeniden kur ---
 if git diff --name-only "$LOCAL" "$NEW" | grep -qE "^(install\.sh|requirements\.txt)$"; then
     log "→ Bağımlılıklar değişmiş, install.sh çalıştırılıyor..."
     bash install.sh >>"$LOG_FILE" 2>&1 || log "⚠ install.sh uyarı verdi"
 fi
 
-# --- 8) İsteğe bağlı: uygulamayı yeniden başlat ---
-if [ $RESTART -eq 1 ]; then
+# --- 9) İsteğe bağlı: yeniden başlat ---
+if [ "$RESTART" -eq 1 ]; then
     log "→ Uygulama yeniden başlatılıyor..."
-    # X11 kiosk modunda: X server'ı kapat, startx tekrar çalışsın
     if pgrep -f "cyberdeck.py" >/dev/null; then
         pkill -f "cyberdeck.py" || true
-        sleep 2
-        # .bash_profile tty1'de startx'i otomatik çağırır, ama garanti olsun:
-        sudo -u "$USER" DISPLAY=:0 startx >/dev/null 2>&1 &
+        sleep 3
+        DISPLAY=:0 startx >/dev/null 2>&1 &
     fi
 fi
 
