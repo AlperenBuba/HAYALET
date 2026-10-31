@@ -98,7 +98,8 @@ class GhostDeckApp(tk.Tk):
                 DirScanPage, WHOISPage, DNSPage, SubEnumPage, HTTPHeadersPage,
                 SSLCertPage, IPInfoPage, ReverseIPPage, TechStackPage, WaybackPage,
                 RobotsPage, SitemapPage, SecHeadersPage, PortCheckPage,
-                ClockPage, CalculatorPage, FileManagerPage, SpeedtestPage, SnakePage):
+                ClockPage, CalculatorPage, FileManagerPage, SpeedtestPage, SnakePage,
+                ChronometerPage):
             fr = F(parent=self.container, controller=self); self.frames[F.__name__] = fr
             fr.place(x=0, y=0, width=480, height=320)
         self.show_frame("BootPage", add_to_history=False)
@@ -1750,6 +1751,138 @@ class SnakePage(tk.Frame):
         self.canvas.create_text(self.cols*self.cs//2, self.rows*self.cs//2, text="GAME OVER", fill="#aa0000", font=("Helvetica",24,"bold"))
         self.canvas.create_text(self.cols*self.cs//2, self.rows*self.cs//2+30, text="Press RESTART", fill="white", font=("Helvetica",12))
 
+class ChronometerPage(tk.Frame):
+    """Kronometre: başlat/durdur, tur kaydet, sıfırla."""
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent, bg="black", width=480, height=320)
+        self.controller = controller
+
+        self.running = False
+        self.elapsed = 0.0
+        self.start_time = 0.0
+        self.laps = []
+        self.timer_id = None
+
+        # --- Toolbar ---
+        tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
+        tk.Button(tb, text="< BACK", bg="#111111", fg="#39ff14",
+                  font=("Helvetica",11,"bold"), bd=0,
+                  command=self.on_back).pack(side="left", fill="y")
+        tk.Label(tb, text="CHRONOMETER", bg="#111111", fg="#39ff14",
+                 font=("Helvetica",11,"bold")).pack(side="left", expand=True)
+
+        # --- Zaman göstergesi ---
+        self.time_var = tk.StringVar(value="00:00:00.00")
+        tk.Label(self, textvariable=self.time_var, bg="black", fg="#39ff14",
+                 font=("Courier", 40, "bold")).place(relx=0.5, y=40, anchor="n")
+
+        # --- Butonlar ---
+        bf = tk.Frame(self, bg="black"); bf.place(x=8, y=110, width=464, height=44)
+        self.btn_start = tk.Button(bf, text="START", font=("Helvetica",13,"bold"),
+                                    bg="#005500", fg="white", bd=1, relief="solid",
+                                    highlightbackground="#39ff14", highlightthickness=1,
+                                    command=self.toggle)
+        self.btn_start.pack(side="left", fill="both", expand=True, padx=3)
+        tk.Button(bf, text="LAP", font=("Helvetica",13,"bold"),
+                  bg="#1a1a1a", fg="#39ff14", bd=1, relief="solid",
+                  highlightbackground="#39ff14", highlightthickness=1,
+                  command=self.add_lap).pack(side="left", fill="both", expand=True, padx=3)
+        tk.Button(bf, text="RESET", font=("Helvetica",13,"bold"),
+                  bg="#aa0000", fg="white", bd=1, relief="solid",
+                  highlightbackground="#aa0000", highlightthickness=1,
+                  command=self.reset).pack(side="left", fill="both", expand=True, padx=3)
+
+        # --- Tur listesi ---
+        lf = tk.Frame(self, bg="black"); lf.place(x=8, y=165, width=464, height=118)
+        sb = tk.Scrollbar(lf); sb.pack(side="right", fill="y")
+        self.laps_area = tk.Text(lf, bg="black", fg="#39ff14", font=("Courier",10),
+                                  bd=0, padx=5, pady=3, yscrollcommand=sb.set, wrap="none")
+        self.laps_area.pack(side="left", fill="both", expand=True)
+        sb.config(command=self.laps_area.yview)
+        make_readonly_text(self.laps_area)
+        self.laps_area.insert(tk.END, "  Tur kaydetmek için LAP'e bas.\n")
+        self.laps_area.config(state=tk.DISABLED)
+
+    # --- Yaşam döngüsü ---
+    def on_show(self):
+        # Sayfaya geri dönüldüğünde zamanı güncelle
+        self.time_var.set(self._fmt(self._current()))
+
+    def on_back(self):
+        # Arka planda çalışmaya devam eder, sadece sayfadan çıkar
+        self.controller.go_back()
+
+    # --- Yardımcılar ---
+    def _current(self):
+        return (time.time() - self.start_time) if self.running else self.elapsed
+
+    def _fmt(self, t):
+        if t < 0: t = 0
+        h = int(t // 3600)
+        m = int((t % 3600) // 60)
+        s = int(t % 60)
+        cs = int((t * 100) % 100)
+        return f"{h:02d}:{m:02d}:{s:02d}.{cs:02d}"
+
+    def _tick(self):
+        if not self.running: return
+        self.time_var.set(self._fmt(time.time() - self.start_time))
+        self.timer_id = self.after(50, self._tick)
+
+    # --- Kontroller ---
+    def toggle(self):
+        if self.running: self.pause()
+        else: self.start()
+
+    def start(self):
+        if not self.running:
+            self.start_time = time.time() - self.elapsed
+            self.running = True
+            self.btn_start.config(text="PAUSE", bg="#cc8800")
+            self._tick()
+
+    def pause(self):
+        if self.running:
+            self.elapsed = time.time() - self.start_time
+            self.running = False
+            self.btn_start.config(text="RESUME", bg="#005500")
+            self.time_var.set(self._fmt(self.elapsed))
+            if self.timer_id:
+                try: self.after_cancel(self.timer_id)
+                except: pass
+                self.timer_id = None
+
+    def reset(self):
+        self.running = False
+        self.elapsed = 0.0
+        self.laps = []
+        if self.timer_id:
+            try: self.after_cancel(self.timer_id)
+            except: pass
+            self.timer_id = None
+        self.time_var.set("00:00:00.00")
+        self.btn_start.config(text="START", bg="#005500")
+        self.laps_area.config(state=tk.NORMAL)
+        self.laps_area.delete(1.0, tk.END)
+        self.laps_area.insert(tk.END, "  Tur kaydetmek için LAP'e bas.\n")
+        self.laps_area.config(state=tk.DISABLED)
+
+    def add_lap(self):
+        cur = self._current()
+        if cur == 0.0 and not self.laps:
+            return
+        self.laps.append(cur)
+        n = len(self.laps)
+        prev = self.laps[-2] if n >= 2 else 0.0
+        lap_time = cur - prev
+        line = f"#{n:02d}   {self._fmt(cur)}   +{self._fmt(lap_time)}\n"
+        self.laps_area.config(state=tk.NORMAL)
+        if n == 1:
+            self.laps_area.delete(1.0, tk.END)  # placeholder'ı sil
+        self.laps_area.insert(tk.END, line)
+        self.laps_area.see(tk.END)
+        self.laps_area.config(state=tk.DISABLED)
+
 class MainMenu(tk.Frame):
     APPS = [
         ("OnionShare Chat", "OnionPage"), ("File Receive", "ReceivePage"),
@@ -1765,6 +1898,7 @@ class MainMenu(tk.Frame):
         ("Port Check", "PortCheckPage"), ("Clock", "ClockPage"),
         ("Calculator", "CalculatorPage"), ("Speedtest", "SpeedtestPage"),
         ("Snake", "SnakePage"),
+        ("Chronometer", "ChronometerPage"),
     ]
 
     def __init__(self, parent, controller):
@@ -1950,8 +2084,10 @@ class MainMenu(tk.Frame):
             def calc(): self.controller.show_frame("CalculatorPage")
             def speed(): self.controller.show_frame("SpeedtestPage")
             def snake(): self.controller.show_frame("SnakePage")
+            def chrono(): self.controller.show_frame("ChronometerPage")
             self.cb(0,0,"FILE\nMANAGER",fm,bs); self.cb(0,1,"CLOCK",clock,bs); self.cb(0,2,"CALCULATOR",calc,bs)
             self.cb(1,0,"SPEEDTEST",speed,bs); self.cb(1,1,"SNAKE",snake,bs)
+            self.cb(1,2,"CHRONOMETER",chrono,bs)
 
     def cb(self, r, c, t, cmd, style, disabled=False):
         if disabled: b = tk.Button(self.grid_frame, text=t, bg="#111111", fg="#555555", font=style["font"], bd=1, relief="solid", state=tk.DISABLED)
