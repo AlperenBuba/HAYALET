@@ -64,9 +64,9 @@ fi
 
 # --- 6) GÜNCELLEME VAR — şimdi yedekle ---
 STASHED=0
-if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-    log "⚠ Yerel değişiklik var, stash'leniyor..."
-    if git stash push -m "auto-update-$(date +%s)" >>"$LOG_FILE" 2>&1; then
+if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    log "⚠ Yerel/untracked değişiklik var, stash'leniyor..."
+    if git stash push -u -m "auto-update-$(date +%s)" >>"$LOG_FILE" 2>&1; then
         STASHED=1
     fi
 fi
