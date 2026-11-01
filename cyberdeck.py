@@ -1903,6 +1903,7 @@ class ArpSpoofPage(tk.Frame):
         self.controller = controller
         self.processes = []
         self.running = False
+        self.blocking = False
         self._focus = "target"
         self.target_ip = ""
         self.gateway_ip = ""
@@ -1994,7 +1995,7 @@ class ArpSpoofPage(tk.Frame):
         self.info_lbl.place(x=0, y=22, width=480, height=18)
 
         log_f = tk.Frame(f, bg="black")
-        log_f.place(x=0, y=40, width=480, height=180)
+        log_f.place(x=0, y=40, width=480, height=150)
         sb = tk.Scrollbar(log_f); sb.pack(side="right", fill="y")
         self.log_area = tk.Text(log_f, bg="black", fg="#39ff14",
                                 font=("Helvetica",9), bd=0, padx=4, pady=3,
@@ -2008,25 +2009,32 @@ class ArpSpoofPage(tk.Frame):
         self.log_area.tag_config("err", foreground="#aa0000")
         self.log_area.tag_config("data", foreground="#00bfff")
 
-        bf1 = tk.Frame(f, bg="black"); bf1.place(x=0, y=225, width=480, height=30)
-        tk.Button(bf1, text="SCAN HOSTS", bg="#1a1a1a", fg="#39ff14",
+        # 3'lü üst satır: SCAN / DNS / HTTP
+        bf1 = tk.Frame(f, bg="black"); bf1.place(x=0, y=194, width=480, height=30)
+        tk.Button(bf1, text="SCAN", bg="#1a1a1a", fg="#39ff14",
                   font=("Helvetica",10,"bold"), bd=1, relief="solid",
                   highlightbackground="#39ff14",
-                  command=self.scan_hosts).place(x=5, y=1, width=230, height=28)
+                  command=self.scan_hosts).place(x=4, y=1, width=152, height=28)
         tk.Button(bf1, text="DNS SPY", bg="#1a1a1a", fg="#39ff14",
                   font=("Helvetica",10,"bold"), bd=1, relief="solid",
                   highlightbackground="#39ff14",
-                  command=self.dns_spy).place(x=245, y=1, width=230, height=28)
-
-        bf2 = tk.Frame(f, bg="black"); bf2.place(x=0, y=258, width=480, height=30)
-        tk.Button(bf2, text="HTTP CAPTURE", bg="#1a1a1a", fg="#39ff14",
+                  command=self.dns_spy).place(x=160, y=1, width=152, height=28)
+        tk.Button(bf1, text="HTTP", bg="#1a1a1a", fg="#39ff14",
                   font=("Helvetica",10,"bold"), bd=1, relief="solid",
                   highlightbackground="#39ff14",
-                  command=self.http_capture).place(x=5, y=1, width=230, height=28)
+                  command=self.http_capture).place(x=316, y=1, width=160, height=28)
+
+        # 2'li alt satır: BLOCK / STOP
+        bf2 = tk.Frame(f, bg="black"); bf2.place(x=0, y=226, width=480, height=30)
+        self.btn_block = tk.Button(bf2, text="BLOCK NET", bg="#aa0000", fg="white",
+                                    font=("Helvetica",10,"bold"), bd=1, relief="solid",
+                                    highlightbackground="#aa0000",
+                                    command=self.toggle_block)
+        self.btn_block.place(x=4, y=1, width=232, height=28)
         tk.Button(bf2, text="STOP MITM", bg="#aa0000", fg="white",
                   font=("Helvetica",10,"bold"), bd=1, relief="solid",
                   highlightbackground="#aa0000",
-                  command=self.stop_spoof).place(x=245, y=1, width=230, height=28)
+                  command=self.stop_spoof).place(x=240, y=1, width=236, height=28)
 
     # ============================================================
     # Layout helpers
@@ -2038,6 +2046,9 @@ class ArpSpoofPage(tk.Frame):
         self.mitm_frame.place_forget()
         self.input_frame.place(x=0, y=30, width=480, height=290)
         self.btn_start_top.config(state=tk.NORMAL, text="START", bg="#005500")
+        self.blocking = False
+        if hasattr(self, 'btn_block'):
+            self.btn_block.config(text="BLOCK NET", bg="#aa0000")
 
     def show_mitm(self):
         self.input_frame.place_forget()
@@ -2110,9 +2121,13 @@ class ArpSpoofPage(tk.Frame):
             return
 
         self.running = True
+        self.blocking = False
         self.target_ip = target
         self.gateway_ip = gateway
         self.show_mitm()
+        if hasattr(self, 'btn_block'):
+            self.btn_block.config(text="BLOCK NET", bg="#aa0000")
+        self.status_lbl.config(text="● MITM ACTIVE", bg="#aa0000")
         self._clear_log()
         self.info_lbl.config(text=f"TGT: {target}  |  GW: {gateway}")
 
@@ -2157,12 +2172,44 @@ class ArpSpoofPage(tk.Frame):
             self.log(f"[!] Error: {str(e)[:50]}", "err")
             self.stop_spoof()
 
+    def _set_forward(self, state):
+        """IP forwarding'i aç/kapat. state: 1 veya 0."""
+        subprocess.run(
+            f"sudo sysctl -w net.ipv4.ip_forward={state}",
+            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+
+    def toggle_block(self):
+        """Hedefin internet trafiğini kes/geri aç (ip_forward toggle)."""
+        if not self.running:
+            return
+
+        if not self.blocking:
+            # BLOCK: forward kapat
+            self._set_forward(0)
+            self.blocking = True
+            self.log("[!] Forwarding OFF — target internet BLOCKED", "err")
+            self.btn_block.config(text="UNBLOCK", bg="#005500")
+            self.status_lbl.config(text="● MITM ACTIVE — NET BLOCKED", bg="#cc8800")
+        else:
+            # UNBLOCK: forward aç
+            self._set_forward(1)
+            self.blocking = False
+            self.log("[+] Forwarding ON — target internet RESTORED", "ok")
+            self.btn_block.config(text="BLOCK NET", bg="#aa0000")
+            self.status_lbl.config(text="● MITM ACTIVE", bg="#aa0000")
+
     def stop_spoof(self):
         if not self.running:
             self.show_input()
             return
         self.running = False
         self.log("[!] Stopping MITM...", "warn")
+        # BLOCK hâlâ aktifse geri aç (Pi'nin kendi bağlantısı zaten OUTPUT, etkilenmedi ama temiz olsun)
+        if self.blocking:
+            self._set_forward(1)
+            self.blocking = False
+            self.log("[-] Forwarding restored (was blocked)", "sys")
         for p in self.processes:
             try: os.killpg(os.getpgid(p.pid), signal.SIGINT)
             except: pass
@@ -2845,7 +2892,7 @@ class OnionPage(tk.Frame):
 
     # ---------- Chat client (Socket.IO over Tor) ----------
     def _connect_chat_thread(self, onion_url):
-        """Attempt to join the chat from the Pi side via Tor."""
+        """Attempt to join the chat from the Pi side via Tor, with retries."""
         try:
             import socketio
             import requests as req
@@ -2855,23 +2902,54 @@ class OnionPage(tk.Frame):
             self.after(0, lambda: self.log("[*] Run: sudo apt install python3-socketio python3-websocket\n", "sys"))
             return
 
+        url = onion_url.rstrip("/")
+        proxies = {"http": "socks5h://127.0.0.1:9050",
+                   "https": "socks5h://127.0.0.1:9050"}
+
+        sess = req.Session()
+        sess.proxies = proxies
+        sess.verify = False
+
+        # --- 1) Servis hazır olana kadar bekle (retry) ---
+        # OnionShare .onion URL'si göründükten hemen sonra HTTP servisi
+        # hazır olmayabilir. Pi Zero'da 5-15 saniye gecikme normal.
+        ready = False
+        delays = [8, 10, 12, 15, 20]  # toplam ~65 saniye
+        for i, delay in enumerate(delays):
+            self.after(0, lambda d=delay, n=i+1: self.log(
+                f"[*] Waiting {d}s for service... (attempt {n}/{len(delays)})", "sys"))
+            time.sleep(delay)
+
+            # Önce root'u dene (bazı versiyonlar "/" → "/chat" redirect)
+            for path in ["/chat?username=" + self.username, "/"]:
+                try:
+                    r = sess.get(url + path, timeout=60, allow_redirects=True)
+                    code = r.status_code
+                    self.after(0, lambda c=code, p=path: self.log(
+                        f"[*] GET {p[:40]} → HTTP {c}", "sys"))
+                    if code == 200:
+                        ready = True
+                        break
+                    if code in (301, 302, 308):
+                        # Redirect takip edildi ama son durum farklı, yine de hazır olabilir
+                        ready = True
+                        break
+                except Exception as e:
+                    err = str(e)[:45]
+                    self.after(0, lambda x=err: self.log(f"[*] GET failed: {x}", "sys"))
+            if ready:
+                break
+
+        if not ready:
+            self.after(0, lambda: self.log(
+                "[!] Service not ready after ~65s — use Tor Browser fallback", "err"))
+            self.after(0, lambda: self.log(
+                "[*] Chat UI works locally. Room messages need another device on the .onion URL.", "sys"))
+            return
+
+        # --- 2) Socket.IO bağlan (polling only — socks uyumlu) ---
         try:
-            url = onion_url.rstrip("/")
-            proxies = {"http": "socks5h://127.0.0.1:9050",
-                       "https": "socks5h://127.0.0.1:9050"}
-
-            # 1) Get session cookie via GET /chat
-            sess = req.Session()
-            sess.proxies = proxies
-            sess.verify = False
-
-            self.after(0, lambda: self.log("\n[*] Chat: getting session...\n", "sys"))
-            r = sess.get(f"{url}/chat?username={self.username}", timeout=90, allow_redirects=True)
-            if r.status_code != 200:
-                self.after(0, lambda: self.log(f"[!] Chat GET: HTTP {r.status_code}\n", "err"))
-                return
-
-            # 2) Connect via socketio (polling only through socks)
+            self.after(0, lambda: self.log("[*] Chat: connecting socketio...", "sys"))
             self.chat_sio = socketio.Client(http_session=sess, reconnection=False)
 
             @self.chat_sio.event
@@ -2890,20 +2968,21 @@ class OnionPage(tk.Frame):
             @self.chat_sio.event
             def disconnect():
                 self.chat_connected = False
-                self.after(0, lambda: self.log("[!] Chat disconnected\n", "err"))
+                self.after(0, lambda: self.log("[!] Chat disconnected", "err"))
 
-            self.after(0, lambda: self.log("[*] Chat: connecting socketio...\n", "sys"))
-            # Use polling only (works through socks)
-            self.chat_sio.connect(url,
-                                  transports=["polling"],
-                                  wait_timeout=90,
-                                  socketio_path="/socket.io")
+            self.chat_sio.connect(
+                url,
+                transports=["polling"],
+                wait_timeout=120,
+                socketio_path="/socket.io"
+            )
             self.chat_sio.wait()
         except Exception as e:
             self.chat_connected = False
             msg = str(e)[:60]
-            self.after(0, lambda: self.log(f"[!] Chat connect failed: {msg}\n", "err"))
-            self.after(0, lambda: self.log("[*] Use Tor Browser on another device to join via the .onion URL above\n", "sys"))
+            self.after(0, lambda: self.log(f"[!] Socket.IO connect failed: {msg}", "err"))
+            self.after(0, lambda: self.log(
+                "[*] Chat UI works locally. Other users can join via the .onion URL.", "sys"))
 
     def _on_chat_connected(self):
         self.log("[+] Chat connected as " + self.username + "\n", "me")
