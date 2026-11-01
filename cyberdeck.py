@@ -2158,7 +2158,7 @@ class MainMenu(tk.Frame):
             finally:
                 self.after(0, self.on_show)
         threading.Thread(target=run, daemon=True).start()
-
+#dsfgdfg
     def _show_toast(self, msg):
         """Kısa süreliğine ekranın altında mesaj göster."""
         try:
