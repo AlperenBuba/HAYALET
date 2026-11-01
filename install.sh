@@ -33,7 +33,8 @@ sudo apt install -y \
     tor proxychains4 nmap network-manager wireless-tools \
     curl git speedtest-cli zram-tools dsniff \
     xserver-xorg xinit x11-xserver-utils unclutter \
-    build-essential libssl-dev libffi-dev python3-dev
+    build-essential libssl-dev libffi-dev python3-dev \
+    iptables
 
 echo "✓ Sistem paketleri tamam"
 
