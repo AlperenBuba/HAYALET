@@ -72,7 +72,7 @@ REQUIRED_PKGS=(
     curl git speedtest-cli zram-tools dsniff
     xserver-xorg xinit x11-xserver-utils unclutter
     build-essential libssl-dev libffi-dev python3-dev
-    iptables
+    iptables thc-ipv6
 )
 
 MISSING=()
