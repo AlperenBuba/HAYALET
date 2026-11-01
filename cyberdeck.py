@@ -2521,15 +2521,347 @@ class BaseOnionPage(tk.Frame):
         self.log_area.see(tk.END)
         self.log_area.config(state=tk.DISABLED)
 
-class OnionPage(BaseOnionPage):
+class OnionPage(tk.Frame):
+    """OnionShare Chat + Pi tarafında chat UI (Socket.IO over Tor)."""
     def __init__(self, parent, controller):
-        super().__init__(parent, controller, "ONION CHAT"); self.log("Ready.\n")
+        tk.Frame.__init__(self, parent, bg="black", width=480, height=320)
+        self.controller = controller
+        self.process = None
+        self.secili_mod = "PRIVATE"
+        self.current_url = None
+        self.current_key = None
+        self.username = f"deck_{random.randint(100, 999)}"
+        self.chat_sio = None
+        self.chat_connected = False
+        self.kb_visible = False
+
+        # --- Toolbar ---
+        tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
+        tk.Button(tb, text="< BACK", bg="#111111", fg="#39ff14",
+                  font=("Helvetica",11,"bold"), bd=0,
+                  command=self.on_back).pack(side="left", fill="y")
+        self.mod_lbl = tk.Label(tb, text=f"MODE: {self.secili_mod}", bg="#111111",
+                                 fg="yellow", font=("Helvetica",11,"bold"))
+        self.mod_lbl.pack(side="left", expand=True)
+        tk.Label(tb, text="ONION CHAT", bg="#111111", fg="#39ff14",
+                 font=("Helvetica",11,"bold")).pack(side="right", padx=10)
+
+        # --- Chat log ---
+        self.log_frame = tk.Frame(self, bg="black")
+        sb = tk.Scrollbar(self.log_frame); sb.pack(side="right", fill="y")
+        self.log_area = tk.Text(self.log_frame, bg="black", fg="#39ff14",
+                                font=("Helvetica",10), bd=0, padx=5, pady=5,
+                                yscrollcommand=sb.set, wrap="word")
+        self.log_area.pack(side="left", fill="both", expand=True)
+        sb.config(command=self.log_area.yview)
+        make_readonly_text(self.log_area)
+        self.log_frame.place(x=0, y=30, width=480, height=185)
+        self.log_area.tag_config("sys", foreground="#888888")
+        self.log_area.tag_config("me", foreground="#39ff14")
+        self.log_area.tag_config("other", foreground="#cc8800")
+        self.log_area.tag_config("url", foreground="#00bfff")
+        self.log_area.tag_config("err", foreground="#aa0000")
+
+        # --- Chat input (hidden until chat connected) ---
+        self.chat_input_frame = tk.Frame(self, bg="#111111")
+        self.chat_entry = tk.Entry(self.chat_input_frame, font=("Helvetica",11),
+                                    bg="#222", fg="white", bd=0,
+                                    insertbackground="#39ff14")
+        self.chat_entry.place(x=5, y=3, width=370, height=26)
+        self.chat_entry.bind("<Button-1>", lambda e: self.show_keyboard())
+        self.btn_send = tk.Button(self.chat_input_frame, text="SEND",
+                                   font=("Helvetica",10,"bold"),
+                                   bg="#005500", fg="white", bd=0,
+                                   command=self.send_chat_message)
+        self.btn_send.place(x=380, y=3, width=95, height=26)
+
+        # --- Keyboard (hidden by default) ---
+        self.keyboard_frame = tk.Frame(self, bg="black")
+        self._build_chat_keyboard(self.keyboard_frame)
+
+        # --- START/STOP buttons ---
+        self.btn_start = tk.Button(self, text="START", font=("Helvetica",11,"bold"),
+                                    bg="#005500", fg="white", command=self.start_process)
+        self.btn_start.place(x=0, y=290, width=240, height=30)
+        self.btn_stop = tk.Button(self, text="STOP", font=("Helvetica",11,"bold"),
+                                   bg="#aa0000", fg="white", command=self.stop_process)
+        self.btn_stop.place(x=240, y=290, width=240, height=30)
+
+        self.log("Ready. Tap START to begin.\n", "sys")
+
+    # ---------- Layout helpers ----------
+    def _show_chat_input(self):
+        self.chat_input_frame.place(x=0, y=215, width=480, height=32)
+        self.log_frame.place(x=0, y=30, width=480, height=185)
+
+    def _hide_chat_input(self):
+        self.chat_input_frame.place_forget()
+
+    def _build_chat_keyboard(self, parent):
+        rows = [
+            ["q","w","e","r","t","y","u","i","o","p"],
+            ["a","s","d","f","g","h","j","k","l"],
+            ["z","x","c","v","b","n","m","SP","DEL","HIDE"],
+        ]
+        for row in rows:
+            f = tk.Frame(parent, bg="black"); f.pack(side="top", fill="x", expand=True)
+            for ch in row:
+                if ch == "SP":
+                    b = tk.Button(f, text="␣", command=lambda: self.chat_entry.insert(tk.END, " "),
+                                  bg="#333", fg="white", font=("Helvetica",10,"bold"))
+                elif ch == "DEL":
+                    b = tk.Button(f, text="⌫", command=self._chat_del,
+                                  bg="#aa0000", fg="white", font=("Helvetica",10,"bold"))
+                elif ch == "HIDE":
+                    b = tk.Button(f, text="▼", command=self.hide_keyboard,
+                                  bg="#333", fg="#39ff14", font=("Helvetica",10,"bold"))
+                else:
+                    b = tk.Button(f, text=ch, command=lambda c=ch: self.chat_entry.insert(tk.END, c),
+                                  bg="#222", fg="#39ff14", font=("Helvetica",11,"bold"))
+                b.pack(side="left", fill="both", expand=True, padx=1, pady=1)
+
+    def _chat_del(self):
+        c = self.chat_entry.get()
+        if c: self.chat_entry.delete(len(c)-1, tk.END)
+
+    def show_keyboard(self):
+        if self.kb_visible: return
+        self.kb_visible = True
+        self.btn_start.place_forget()
+        self.btn_stop.place_forget()
+        self.keyboard_frame.place(x=0, y=250, width=480, height=70)
+
+    def hide_keyboard(self):
+        if not self.kb_visible: return
+        self.kb_visible = False
+        self.keyboard_frame.place_forget()
+        # Restore buttons
+        if self.process:
+            self.btn_stop.place(x=240, y=290, width=240, height=30)
+        else:
+            self.btn_start.place(x=0, y=290, width=240, height=30)
+            self.btn_stop.place(x=240, y=290, width=240, height=30)
+
+    # ---------- Lifecycle ----------
+    def on_show(self):
+        pass
+
+    def on_back(self):
+        if self.kb_visible:
+            self.hide_keyboard(); return
+        self.controller.go_back()
+
+    def set_mod(self, m):
+        # Disconnect existing chat if any
+        self._disconnect_chat()
+        self.secili_mod = m
+        self.mod_lbl.config(text=f"MODE: {self.secili_mod}")
+        self.log_area.config(state=tk.NORMAL)
+        self.log_area.delete(1.0, tk.END)
+        self.log_area.config(state=tk.DISABLED)
+        self.current_url = None
+        self.current_key = None
+        self._hide_chat_input()
+        self.log(f"Mode: {self.secili_mod}\n", "sys")
+
+    # ---------- OnionShare CLI ----------
     def start_process(self):
         if self.process: return
-        self.log(f"\n--- {self.secili_mod} CHAT ---\n")
+        self.log(f"\n--- {self.secili_mod} CHAT ---\n", "sys")
         v = os.getenv("ONIONSHARE_CLI", os.path.expanduser("~/onionshare-env/bin/onionshare-cli"))
-        self._sureci(f"PYTHONUNBUFFERED=1 {v} --chat" + (" --public" if self.secili_mod=="PUBLIC" else ""))
-    def save_addr(self): super().save_addr("onionshare_chat.txt")
+        cmd = f"PYTHONUNBUFFERED=1 {v} --chat"
+        if self.secili_mod == "PUBLIC": cmd += " --public"
+        self._start_onionshare(cmd)
+
+    def _start_onionshare(self, cmd):
+        m, s = pty.openpty()
+        env = os.environ.copy()
+        env.update({"PYTHONUNBUFFERED":"1","TERM":"dumb","LANG":"C.UTF-8","LC_ALL":"C.UTF-8"})
+        self.process = subprocess.Popen(cmd, shell=True, stdin=s, stdout=s, stderr=s,
+                                        env=env, text=True, bufsize=1, start_new_session=True)
+        os.close(s)
+
+        def reader():
+            buf = b""
+            try:
+                while True:
+                    try:
+                        d = os.read(m, 4096)
+                        if not d: break
+                        buf += d
+                        while b"\n" in buf:
+                            line, buf = buf.split(b"\n", 1)
+                            text = line.decode("utf-8", errors="replace").rstrip()
+                            if text: self._handle_cli_line(text)
+                    except OSError: break
+            finally:
+                try: os.close(m)
+                except: pass
+        threading.Thread(target=reader, daemon=True).start()
+
+    def _handle_cli_line(self, line):
+        t = ansi_temizle(line).strip()
+        if not t: return
+
+        # Detect .onion URL
+        mm = re.search(r'(http://[a-z0-9]{56}\.onion)', t)
+        if mm and not self.current_url:
+            self.current_url = mm.group(1)
+            self._save_addr("onionshare_chat.txt")
+            self.log(f"\n[URL] {self.current_url}\n", "url")
+            # Start chat client connection (non-blocking)
+            threading.Thread(target=self._connect_chat_thread,
+                             args=(self.current_url,), daemon=True).start()
+
+        # Detect private key
+        km = re.search(r'Private key:\s*([A-Za-z0-9\-_]+)', t, re.IGNORECASE)
+        if km:
+            self.current_key = km.group(1)
+            self._save_addr("onionshare_chat.txt")
+
+        # Show CLI output (skip noisy lines)
+        if t.startswith("[") or "onion" in t.lower() or "chat" in t.lower():
+            self.log(t[:80], "sys")
+
+    def _save_addr(self, fn):
+        if not self.current_url: return
+        try:
+            c = self.current_url + "\n"
+            if self.current_key: c += f"Private Key: {self.current_key}\n"
+            with open(os.path.expanduser(f"~/{fn}"), "w") as f: f.write(c)
+        except: pass
+
+    # ---------- Chat client (Socket.IO over Tor) ----------
+    def _connect_chat_thread(self, onion_url):
+        """Attempt to join the chat from the Pi side via Tor."""
+        try:
+            import socketio
+            import requests as req
+            import urllib3; urllib3.disable_warnings()
+        except ImportError as e:
+            self.after(0, lambda: self.log(f"\n[!] socketio missing: {e}\n", "err"))
+            self.after(0, lambda: self.log("[*] Run: sudo apt install python3-socketio python3-websocket\n", "sys"))
+            return
+
+        try:
+            url = onion_url.rstrip("/")
+            proxies = {"http": "socks5h://127.0.0.1:9050",
+                       "https": "socks5h://127.0.0.1:9050"}
+
+            # 1) Get session cookie via GET /chat
+            sess = req.Session()
+            sess.proxies = proxies
+            sess.verify = False
+
+            self.after(0, lambda: self.log("\n[*] Chat: getting session...\n", "sys"))
+            r = sess.get(f"{url}/chat?username={self.username}", timeout=90, allow_redirects=True)
+            if r.status_code != 200:
+                self.after(0, lambda: self.log(f"[!] Chat GET: HTTP {r.status_code}\n", "err"))
+                return
+
+            # 2) Connect via socketio (polling only through socks)
+            self.chat_sio = socketio.Client(http_session=sess, reconnection=False)
+
+            @self.chat_sio.event
+            def connect():
+                self.chat_connected = True
+                self.after(0, self._on_chat_connected)
+
+            @self.chat_sio.on("new_message")
+            def on_msg(data):
+                self.after(0, lambda d=data: self._on_chat_message(d))
+
+            @self.chat_sio.on("joined")
+            def on_joined(data):
+                pass
+
+            @self.chat_sio.event
+            def disconnect():
+                self.chat_connected = False
+                self.after(0, lambda: self.log("[!] Chat disconnected\n", "err"))
+
+            self.after(0, lambda: self.log("[*] Chat: connecting socketio...\n", "sys"))
+            # Use polling only (works through socks)
+            self.chat_sio.connect(url,
+                                  transports=["polling"],
+                                  wait_timeout=90,
+                                  socketio_path="/socket.io")
+            self.chat_sio.wait()
+        except Exception as e:
+            self.chat_connected = False
+            msg = str(e)[:60]
+            self.after(0, lambda: self.log(f"[!] Chat connect failed: {msg}\n", "err"))
+            self.after(0, lambda: self.log("[*] Use Tor Browser on another device to join via the .onion URL above\n", "sys"))
+
+    def _on_chat_connected(self):
+        self.log("[+] Chat connected as " + self.username + "\n", "me")
+        self._show_chat_input()
+
+    def _on_chat_message(self, data):
+        try:
+            user = data.get("username", "?")
+            msg = data.get("message", "")
+            tag = "me" if user == self.username else "other"
+            self.log(f"[{user}] {msg}\n", tag)
+        except Exception as e:
+            self.log(f"[!] msg parse err: {e}\n", "err")
+
+    def _disconnect_chat(self):
+        self.chat_connected = False
+        if self.chat_sio:
+            try: self.chat_sio.disconnect()
+            except: pass
+            self.chat_sio = None
+        self._hide_chat_input()
+
+    def send_chat_message(self):
+        text = self.chat_entry.get().strip()
+        if not text: return
+        self.chat_entry.delete(0, tk.END)
+
+        if not self.chat_connected or not self.chat_sio:
+            self.log(f"[YOU] {text}\n", "me")
+            self.log("[!] Not connected — message not sent\n", "err")
+            return
+
+        try:
+            self.chat_sio.emit("send_message", {"message": text})
+            # Local echo (server may also broadcast back — duplicate risk)
+            self.log(f"[{self.username}] {text}\n", "me")
+        except Exception as e:
+            self.log(f"[!] Send failed: {str(e)[:40]}\n", "err")
+
+    # ---------- Stop ----------
+    def stop_process(self):
+        self._disconnect_chat()
+        if self.process:
+            self.log("\n[!] Stopping OnionShare...\n", "sys")
+            try:
+                os.killpg(os.getpgid(self.process.pid), signal.SIGINT)
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                try: os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                except: pass
+            except: pass
+            finally:
+                self.process = None
+                self.log("[-] Stopped.\n", "sys")
+        else:
+            self.log("No process.\n", "sys")
+        # Hide chat input, restore start button
+        self._hide_chat_input()
+        if self.kb_visible: self.hide_keyboard()
+        self.btn_start.place(x=0, y=290, width=240, height=30)
+
+    # ---------- Log ----------
+    def log(self, m, tag="sys"):
+        def _l():
+            self.log_area.config(state=tk.NORMAL)
+            self.log_area.insert(tk.END, m, tag)
+            log_sinirla(self.log_area)
+            self.log_area.see(tk.END)
+            self.log_area.config(state=tk.DISABLED)
+        self.after(0, _l)
 
 class ReceivePage(BaseOnionPage):
     def __init__(self, parent, controller):
