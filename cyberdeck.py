@@ -181,18 +181,24 @@ class GhostDeckApp(tk.Tk):
             proje = os.path.dirname(os.path.abspath(__file__))
             script = os.path.join(proje, "update.sh")
             try:
-                r = subprocess.run(["bash", script, "--quiet"], capture_output=True, text=True, timeout=60)
-                out = r.stdout.strip()
-                if "Güncellendi" in out or "Güncel" in out:
-                    if "Güncellendi" in out:
-                        self.after(0, lambda: lbl.config(text="✓ Güncellendi!", fg="#39ff14"))
-                        self.after(0, lambda: status.config(text="Yeniden başlatılıyor..."))
-                        time.sleep(2)
-                        self.after(0, lambda: os.system("sudo reboot"))
-                    else:
-                        self.after(0, lambda: lbl.config(text="✓ Zaten güncel", fg="#39ff14"))
+                r = subprocess.run(["bash", script], capture_output=True, text=True, timeout=90)
+                out = (r.stdout + "\n" + r.stderr).strip()
+
+                if "→ Güncelleme:" in out and "✓ Güncellendi" in out:
+                    self.after(0, lambda: lbl.config(text="✓ Güncellendi!", fg="#39ff14"))
+                    self.after(0, lambda: status.config(text="Yeniden başlatılıyor..."))
+                    time.sleep(2)
+                    self.after(0, lambda: os.system("sudo reboot"))
+                elif "✓ Zaten güncel" in out:
+                    self.after(0, lambda: lbl.config(text="✓ Zaten güncel", fg="#39ff14"))
+                elif "✗ git pull başarısız" in out:
+                    self.after(0, lambda: lbl.config(text="✗ Pull failed", fg="#aa0000"))
+                    self.after(0, lambda: status.config(text="Check update.log"))
+                elif "⚠ İnternet yok" in out or "⚠ GitHub" in out:
+                    self.after(0, lambda: lbl.config(text="⚠ No network/GitHub", fg="#cc8800"))
                 else:
-                    msg = out.split("\n")[-1] if out else "Bilinmeyen hata"
+                    last = [l for l in out.split("\n") if l.strip()]
+                    msg = last[-1] if last else "Bilinmeyen hata"
                     self.after(0, lambda: lbl.config(text=f"⚠ {msg[:40]}", fg="#cc8800"))
             except Exception as e:
                 self.after(0, lambda: lbl.config(text=f"⚠ {str(e)[:40]}", fg="#aa0000"))
@@ -228,7 +234,8 @@ class BootPage(tk.Frame):
         ekle_cikis_butonu(self, controller)
     def on_show(self):
         r = subprocess.run("iwgetid -r", shell=True, stdout=subprocess.PIPE, text=True)
-        s = r.stdout.strip(); self.btn_wifi.config(text=f"WI-FI:\n{s[:8]}" if s else "WI-FI", fg="#39ff14")
+        s = r.stdout.strip()
+        self.btn_wifi.config(text=f"WI-FI:\n{s[:8]}" if s else "WI-FI", fg="#39ff14")
     def animasyon(self):
         x = self.cx + self.r * math.cos(math.radians(self.angle))
         y = self.cy + self.r * math.sin(math.radians(self.angle))
@@ -1805,8 +1812,14 @@ class ChronometerPage(tk.Frame):
 
     # --- Yaşam döngüsü ---
     def on_show(self):
-        # Sayfaya geri dönüldüğünde zamanı güncelle
+        # Zamanı güncelle
         self.time_var.set(self._fmt(self._current()))
+        # Eğer çalışıyorsa, tick döngüsünü yeniden başlat
+        if self.running:
+            if self.timer_id:
+                try: self.after_cancel(self.timer_id)
+                except: pass
+            self._tick()
 
     def on_back(self):
         # Arka planda çalışmaya devam eder, sadece sayfadan çıkar
@@ -2024,8 +2037,26 @@ class MainMenu(tk.Frame):
             self.search_bg.destroy(); del self.search_bg
 
     def on_show(self):
+        # Wi-Fi durumu
         r = subprocess.run("iwgetid -r", shell=True, stdout=subprocess.PIPE, text=True)
-        s = r.stdout.strip(); self.btn_wifi.config(text=f"WI-FI:\n{s[:8]}" if s else "WI-FI", fg="#39ff14")
+        s = r.stdout.strip()
+        self.btn_wifi.config(text=f"WI-FI:\n{s[:8]}" if s else "WI-FI", fg="#39ff14")
+
+        # Tor durumuna göre NEW TOR ID butonu
+        if self._tor_running():
+            self.btn_newtor.config(text="NEW TOR ID", fg="#cc8800", bg="#1a1a1a", state=tk.NORMAL)
+        else:
+            self.btn_newtor.config(text="NO TOR", fg="#555555", bg="#111111", state=tk.DISABLED)
+
+    def _tor_running(self):
+        """Tor ControlPort (9051) dinleniyor mu?"""
+        try:
+            import socket as sock
+            s = sock.socket(); s.settimeout(0.5)
+            s.connect(("127.0.0.1", 9051)); s.close()
+            return True
+        except:
+            return False
 
     def render(self):
         for b in self.buttons: b.destroy()
@@ -2125,7 +2156,7 @@ class MainMenu(tk.Frame):
             except Exception as e:
                 self.after(0, lambda: self._show_toast(f"Failed: {str(e)[:30]}"))
             finally:
-                self.after(0, lambda: self.btn_newtor.config(state=tk.NORMAL, text="NEW TOR ID"))
+                self.after(0, self.on_show)
         threading.Thread(target=run, daemon=True).start()
 
     def _show_toast(self, msg):
@@ -2266,7 +2297,7 @@ class SendPage(BaseOnionPage):
         super().__init__(parent, controller, "FILE SEND"); self.log("Files in ~/send_files\n")
     def start_process(self):
         if self.process: return
-        v = os.getenv("ONIONSHARE_CLI", os.path.abspath("onionshare-env/bin/onionshare-cli"))
+        v = os.getenv("ONIONSHARE_CLI", os.path.expanduser("~/onionshare-env/bin/onionshare-cli"))
         sd = os.path.expanduser(os.getenv("SEND_DIR", "~/send_files"))
         os.makedirs(sd, exist_ok=True)
         if not os.listdir(sd): self.log("\n[!] Empty dir!"); return
