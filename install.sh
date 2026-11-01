@@ -30,7 +30,7 @@ sudo apt install -y \
     python3 python3-pip python3-tk python3-venv \
     python3-pil python3-pil.imagetk \
     tor proxychains4 nmap network-manager wireless-tools \
-    curl git speedtest-cli zram-tools \
+    curl git speedtest-cli zram-tools dsniff \
     xserver-xorg xinit x11-xserver-utils unclutter \
     build-essential libssl-dev libffi-dev python3-dev
 
