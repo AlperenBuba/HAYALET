@@ -1919,6 +1919,10 @@ class MainMenu(tk.Frame):
                                      bg="#1a1a1a", fg="#39ff14",
                                      command=self.show_search)
         self.btn_search.place(x=8, y=52, width=100, height=26)
+        self.btn_newtor = tk.Button(self, text="NEW TOR ID", font=("Helvetica",9,"bold"),
+                                     bg="#1a1a1a", fg="#cc8800",
+                                     command=self.rotate_tor)
+        self.btn_newtor.place(x=113, y=52, width=115, height=26)
         tk.Button(self, text="<", font=("Helvetica",20,"bold"), bg="#1a1a1a", fg="#39ff14", bd=0, command=self.prev_page).place(x=5, y=120, width=35, height=80)
         tk.Button(self, text=">", font=("Helvetica",20,"bold"), bg="#1a1a1a", fg="#39ff14", bd=0, command=self.next_page).place(x=440, y=120, width=35, height=80)
         self.grid_frame = tk.Frame(self, bg="black"); self.grid_frame.place(x=45, y=80, width=390, height=200)
@@ -2105,7 +2109,35 @@ class MainMenu(tk.Frame):
         if self.current_page < 5: self.current_page += 1; self.render()
     def prev_page(self):
         if self.current_page > 0: self.current_page -= 1; self.render()
+    def rotate_tor(self):
+        """Ana menüden Tor devresini yenile (IP değiştir)."""
+        if not TOR_AVAILABLE:
+            self._show_toast("Tor/stem not installed")
+            return
+        self.btn_newtor.config(state=tk.DISABLED, text="WAIT...")
+        def run():
+            try:
+                with Controller.from_port(port=9051) as c:
+                    c.authenticate()
+                    c.signal(Signal.NEWNYM)
+                    time.sleep(1.5)
+                self.after(0, lambda: self._show_toast("Tor circuit renewed ✓"))
+            except Exception as e:
+                self.after(0, lambda: self._show_toast(f"Failed: {str(e)[:30]}"))
+            finally:
+                self.after(0, lambda: self.btn_newtor.config(state=tk.NORMAL, text="NEW TOR ID"))
+        threading.Thread(target=run, daemon=True).start()
 
+    def _show_toast(self, msg):
+        """Kısa süreliğine ekranın altında mesaj göster."""
+        try:
+            t = tk.Frame(self, bg="#111111", bd=1, relief="solid",
+                         highlightbackground="#cc8800", highlightthickness=1)
+            t.place(relx=0.5, rely=0.75, anchor="center", width=380, height=36)
+            tk.Label(t, text=msg, bg="#111111", fg="#cc8800",
+                     font=("Helvetica",10,"bold")).pack(expand=True, fill="both")
+            self.after(2500, lambda: t.destroy() if t.winfo_exists() else None)
+        except: pass
     def show_mac(self):
         if hasattr(self, 'mac_bg'): return
         self.mac_bg = tk.Frame(self, bg="#050505"); self.mac_bg.place(x=0, y=0, width=480, height=320)
