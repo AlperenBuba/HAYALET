@@ -12,7 +12,7 @@ QUIET=0
 for arg in "$@"; do
     case $arg in
         --restart) RESTART=1 ;;
-        --quiet) QUIET=1 ;;
+        --quiet)   QUIET=1 ;;
     esac
 done
 
@@ -55,14 +55,83 @@ if [ -z "$REMOTE" ]; then
     exit 1
 fi
 
-# --- 5) Güncel mi? (STASH'E DOKUNMADAN) ---
+# --- 5) PAKET KONTROLÜ — HER ZAMAN ÇALIŞIR ---
+log "→ Sistem paketleri kontrol ediliyor..."
+
+INSTALLED_PKGS=$(dpkg-query -W -f='${Package}\n' 2>/dev/null)
+
+pkg_installed() {
+    grep -qx "$1" <<< "$INSTALLED_PKGS"
+}
+
+REQUIRED_PKGS=(
+    python3 python3-pip python3-tk python3-venv
+    python3-pil python3-pil.imagetk
+    python3-socketio python3-websocket
+    tor proxychains4 nmap network-manager wireless-tools
+    curl git speedtest-cli zram-tools dsniff
+    xserver-xorg xinit x11-xserver-utils unclutter
+    build-essential libssl-dev libffi-dev python3-dev
+    iptables
+)
+
+MISSING=()
+for pkg in "${REQUIRED_PKGS[@]}"; do
+    pkg_installed "$pkg" || MISSING+=("$pkg")
+done
+
+if [ ${#MISSING[@]} -gt 0 ]; then
+    log "⚠ Eksik sistem paketi: ${MISSING[*]}"
+    if sudo -n true 2>/dev/null; then
+        log "→ Kuruluyor..."
+        if sudo apt install -y "${MISSING[@]}" >>"$LOG_FILE" 2>&1; then
+            log "✓ Eksik paketler kuruldu"
+        else
+            log "✗ Paket kurulumu başarısız (update.log'a bakın)"
+        fi
+    else
+        log "⚠ sudo NOPASSWD yok, otomatik kurulum atlandı"
+        log "→ Elle kurun: sudo apt install -y ${MISSING[*]}"
+    fi
+else
+    log "✓ Tüm sistem paketleri kurulu"
+fi
+
+PY_PKGS=(python3-requests python3-socks python3-stem python3-dotenv)
+PY_MISSING=()
+for pkg in "${PY_PKGS[@]}"; do
+    pkg_installed "$pkg" || PY_MISSING+=("$pkg")
+done
+if [ ${#PY_MISSING[@]} -gt 0 ]; then
+    log "⚠ Eksik Python paketi: ${PY_MISSING[*]}"
+    if sudo -n true 2>/dev/null; then
+        sudo apt install -y "${PY_MISSING[@]}" >>"$LOG_FILE" 2>&1 \
+            && log "✓ Python paketleri kuruldu" \
+            || log "✗ Python paket kurulumu başarısız"
+    fi
+fi
+
+if [ ! -x "$HOME/onionshare-env/bin/onionshare-cli" ]; then
+    log "⚠ OnionShare CLI yok, venv yeniden kurulacak..."
+    python3 -m venv "$HOME/onionshare-env" 2>>"$LOG_FILE" || {
+        log "✗ venv oluşturulamadı (python3-venv kurulu mu?)"
+    }
+    "$HOME/onionshare-env/bin/pip" install --upgrade pip >>"$LOG_FILE" 2>&1
+    "$HOME/onionshare-env/bin/pip" install onionshare-cli >>"$LOG_FILE" 2>&1 \
+        && log "✓ OnionShare CLI kuruldu" \
+        || log "✗ OnionShare kurulumu başarısız"
+else
+    log "✓ OnionShare CLI mevcut"
+fi
+
+# --- 6) Güncel mi? (STASH'E DOKUNMADAN) ---
 if [ "$LOCAL" = "$REMOTE" ]; then
     log "✓ Zaten güncel (${LOCAL:0:7})"
     [ $QUIET -eq 0 ] && echo "Güncel: $LOCAL"
     exit 0
 fi
 
-# --- 6) GÜNCELLEME VAR — şimdi yedekle ---
+# --- 7) GÜNCELLEME VAR — şimdi yedekle ---
 STASHED=0
 if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     log "⚠ Yerel/untracked değişiklik var, stash'leniyor..."
@@ -71,13 +140,12 @@ if ! git diff-index --quiet HEAD -- 2>/dev/null || [ -n "$(git ls-files --others
     fi
 fi
 
-# --- 7) Güncellemeyi uygula ---
+# --- 8) Güncellemeyi uygula ---
 log "→ Güncelleme: ${LOCAL:0:7} → ${REMOTE:0:7}"
 if git pull --quiet origin "$(git rev-parse --abbrev-ref HEAD)" >>"$LOG_FILE" 2>&1; then
     NEW=$(git rev-parse HEAD)
     log "✓ Güncellendi: ${NEW:0:7}"
 
-    # 7b) Stash'i geri yükle
     if [ "$STASHED" -eq 1 ]; then
         if git stash pop >>"$LOG_FILE" 2>&1; then
             log "✓ Yerel değişiklikler geri yüklendi."
@@ -87,7 +155,6 @@ if git pull --quiet origin "$(git rev-parse --abbrev-ref HEAD)" >>"$LOG_FILE" 2>
     fi
 else
     log "✗ git pull başarısız"
-    # Pull başarısız olsa bile stash'i geri yükle (veri kaybı olmasın)
     if [ "$STASHED" -eq 1 ]; then
         git stash pop >>"$LOG_FILE" 2>&1 || true
         log "↩ Yerel değişiklikler geri yüklendi (pull başarısızdı)."
@@ -95,13 +162,13 @@ else
     exit 1
 fi
 
-# --- 8) Bağımlılıklar değiştiyse yeniden kur ---
-if git diff --name-only "$LOCAL" "$NEW" | grep -qE "^(install\.sh|requirements\.txt)$"; then
-    log "→ Bağımlılıklar değişmiş, install.sh çalıştırılıyor..."
-    bash install.sh >>"$LOG_FILE" 2>&1 || log "⚠ install.sh uyarı verdi"
+# --- 9) install.sh değiştiyse uyar (paket kontrolü # 5'te yapıldı) ---
+if git diff --name-only "$LOCAL" "$NEW" | grep -qE "^install\.sh$"; then
+    log "ℹ install.sh değişmiş — elle çalıştırmanız önerilir:"
+    log "   bash $PROJE_DIZINI/install.sh"
 fi
 
-# --- 9) İsteğe bağlı: yeniden başlat ---
+# --- 10) İsteğe bağlı: yeniden başlat ---
 if [ "$RESTART" -eq 1 ]; then
     log "→ Uygulama yeniden başlatılıyor..."
     if pgrep -f "cyberdeck.py" >/dev/null; then
