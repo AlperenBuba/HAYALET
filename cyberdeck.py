@@ -2174,10 +2174,17 @@ class ArpSpoofPage(tk.Frame):
 
     def _set_forward(self, state):
         """IP forwarding'i aç/kapat. state: 1 veya 0."""
-        subprocess.run(
+        r = subprocess.run(
             f"sudo sysctl -w net.ipv4.ip_forward={state}",
-            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            shell=True, capture_output=True, text=True
         )
+        actual = subprocess.run(
+            "cat /proc/sys/net/ipv4/ip_forward",
+            shell=True, capture_output=True, text=True
+        ).stdout.strip()
+        self.log(f"    sysctl request: {state}, actual: {actual}", "sys")
+        if r.returncode != 0:
+            self.log(f"    sysctl err: {r.stderr.strip()[:60]}", "err")
 
     def toggle_block(self):
         """Hedefin internet trafiğini kes/geri aç (ip_forward toggle)."""
