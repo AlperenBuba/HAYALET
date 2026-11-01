@@ -99,6 +99,27 @@ mkdir -p ~/cyberdeck_icons ~/wordlists ~/nmap_scans \
          ~/dirscan_logs ~/osint_logs ~/received_files \
          ~/send_files ~/downloads
 
+# 5a) Proje klasöründeki ikonları ~/cyberdeck_icons/ altına kopyala
+if [ -d "$PROJE_DIZINI/cyberdeck_icons" ]; then
+    ICON_COUNT=0
+    for f in "$PROJE_DIZINI/cyberdeck_icons"/*; do
+        [ -f "$f" ] || continue
+        # Hedef yoksa VEYA kaynak hedeften yeniyse kopyala
+        TARGET="$HOME/cyberdeck_icons/$(basename "$f")"
+        if [ ! -f "$TARGET" ] || [ "$f" -nt "$TARGET" ]; then
+            cp -f "$f" "$TARGET"
+            ICON_COUNT=$((ICON_COUNT + 1))
+        fi
+    done
+    if [ "$ICON_COUNT" -gt 0 ]; then
+        echo "  ✓ $ICON_COUNT ikon kopyalandı → ~/cyberdeck_icons/"
+    else
+        echo "  ⚠ İkonlar zaten güncel"
+    fi
+else
+    echo "  ⚠ $PROJE_DIZINI/cyberdeck_icons/ yok, ikon atlanıyor"
+fi
+
 cat <<EOF > "$PROJE_DIZINI/.env"
 ONIONSHARE_CLI=$HOME/onionshare-env/bin/onionshare-cli
 RECEIVE_DIR=$HOME/received_files
