@@ -231,6 +231,14 @@ LOG_FILE="$PROJE_DIZINI/update.log"
 RESTART=0
 QUIET=0
 
+# Log yazılabilir değilse /dev/null'a düş
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    chmod u+w "$LOG_FILE" 2>/dev/null || true
+    if ! touch "$LOG_FILE" 2>/dev/null; then
+        LOG_FILE="/dev/null"
+    fi
+fi
+
 for arg in "$@"; do
     case $arg in
         --restart) RESTART=1 ;;
