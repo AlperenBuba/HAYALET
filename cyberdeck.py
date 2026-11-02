@@ -767,7 +767,10 @@ class DirScanPage(tk.Frame):
             except Exception as e:
                 self.log(f"Error: {e}"); self._finish(); return
         words = list(dict.fromkeys(words))
-        proxies = {"http":"socks5h://127.0.0.1:9050","https":"socks5h://127.0.0.1:9050"} if self.use_tor else None
+        proxies = {
+            "http": "socks5://127.0.0.1:9050",
+            "https": "socks5://127.0.0.1:9050"
+        }
         timeout = 8 if self.use_tor else 4
         import urllib3; urllib3.disable_warnings()
         self.log("[*] Detecting wildcard...")
@@ -3036,7 +3039,7 @@ class OnionPage(tk.Frame):
             time.sleep(delay)
 
             # Önce root'u dene (bazı versiyonlar "/" → "/chat" redirect)
-            for path in ["/chat?username=" + self.username, "/"]:
+            for path in ["/","/chat?username=" + self.username]:
                 try:
                     r = sess.get(url + path, timeout=60, allow_redirects=True)
                     code = r.status_code
@@ -3090,7 +3093,8 @@ class OnionPage(tk.Frame):
                 transports=["polling"],
                 wait_timeout=120,
                 socketio_path="/socket.io",
-                namespace="/chat"
+                namespace="/chat",
+                auth={"username": self.username}
             )
             self.chat_sio.wait()
         except Exception as e:
