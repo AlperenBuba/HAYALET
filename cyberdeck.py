@@ -3094,7 +3094,7 @@ class OnionPage(tk.Frame):
                 transports=["websocket"],
                 wait_timeout=120,
                 socketio_path="/socket.io",
-                namespace="/chat",
+                namespace=["/chat"],
             )
             self.chat_sio.wait()
         except Exception as e:
