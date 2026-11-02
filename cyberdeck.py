@@ -2913,10 +2913,9 @@ class OnionPage(tk.Frame):
             self.chat_input_frame.place(x=0, y=215, width=480, height=32)
         if self.process:
             self.btn_stop.place(x=240, y=290, width=240, height=30)
-    else:
-        self.btn_start.place(x=0, y=290, width=240, height=30)
-        self.btn_stop.place(x=240, y=290, width=240, height=30)
-
+        else:
+            self.btn_start.place(x=0, y=290, width=240, height=30)
+            self.btn_stop.place(x=240, y=290, width=240, height=30)
     # ---------- Lifecycle ----------
     def on_show(self):
         pass
