@@ -3027,6 +3027,7 @@ class OnionPage(tk.Frame):
         sess = req.Session()
         sess.proxies = proxies
         sess.verify = False
+        sess.headers.update({"Origin": url})
 
         # --- 1) Servis hazır olana kadar bekle (retry) ---
         # OnionShare .onion URL'si göründükten hemen sonra HTTP servisi
@@ -3090,11 +3091,10 @@ class OnionPage(tk.Frame):
 
             self.chat_sio.connect(
                 url,
-                transports=["polling"],
+                transports=["websocket"],
                 wait_timeout=120,
                 socketio_path="/socket.io",
                 namespace="/chat",
-                auth={"username": self.username}
             )
             self.chat_sio.wait()
         except Exception as e:
