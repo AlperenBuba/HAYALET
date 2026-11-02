@@ -3089,8 +3089,8 @@ class OnionPage(tk.Frame):
                 url,
                 transports=["polling"],
                 wait_timeout=120,
-                socketio_path="/socket.io"
-                namespace="/chat
+                socketio_path="/socket.io",
+                namespace="/chat"
             )
             self.chat_sio.wait()
         except Exception as e:
@@ -3132,7 +3132,7 @@ class OnionPage(tk.Frame):
             return
 
         try:
-            self.chat_sio.emit("send_message", {"msg": text}, namespace="/chat")
+            self.chat_sio.emit("text", {"msg": text}, namespace="/chat")
             # Local echo (server may also broadcast back — duplicate risk)
             self.log(f"[{self.username}] {text}\n", "me")
         except Exception as e:
