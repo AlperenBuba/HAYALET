@@ -2900,18 +2900,22 @@ class OnionPage(tk.Frame):
         self.kb_visible = True
         self.btn_start.place_forget()
         self.btn_stop.place_forget()
-        self.keyboard_frame.place(x=0, y=250, width=480, height=70)
+        self.log_frame.place(x=0, y=30, width=480, height=105)
+        self.chat_input_frame.place(x=0, y=135, width=480, height=32)
+        self.keyboard_frame.place(x=0, y=167, width=480, height=153)
 
     def hide_keyboard(self):
         if not self.kb_visible: return
         self.kb_visible = False
         self.keyboard_frame.place_forget()
-        # Restore buttons
+        self.log_frame.place(x=0, y=30, width=480, height=185)
+        if self.chat_connected or self.process:
+            self.chat_input_frame.place(x=0, y=215, width=480, height=32)
         if self.process:
             self.btn_stop.place(x=240, y=290, width=240, height=30)
-        else:
-            self.btn_start.place(x=0, y=290, width=240, height=30)
-            self.btn_stop.place(x=240, y=290, width=240, height=30)
+    else:
+        self.btn_start.place(x=0, y=290, width=240, height=30)
+        self.btn_stop.place(x=240, y=290, width=240, height=30)
 
     # ---------- Lifecycle ----------
     def on_show(self):
