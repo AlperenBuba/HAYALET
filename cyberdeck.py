@@ -3072,7 +3072,7 @@ class OnionPage(tk.Frame):
                 self.chat_connected = True
                 self.after(0, self._on_chat_connected)
 
-            @self.chat_sio.on("new_message")
+            @self.chat_sio.on("chat_message", namespace="/chat")
             def on_msg(data):
                 self.after(0, lambda d=data: self._on_chat_message(d))
 
@@ -3090,6 +3090,7 @@ class OnionPage(tk.Frame):
                 transports=["polling"],
                 wait_timeout=120,
                 socketio_path="/socket.io"
+                namespace="/chat
             )
             self.chat_sio.wait()
         except Exception as e:
@@ -3106,7 +3107,7 @@ class OnionPage(tk.Frame):
     def _on_chat_message(self, data):
         try:
             user = data.get("username", "?")
-            msg = data.get("message", "")
+            msg = data.get("msg", "")
             tag = "me" if user == self.username else "other"
             self.log(f"[{user}] {msg}\n", tag)
         except Exception as e:
@@ -3131,7 +3132,7 @@ class OnionPage(tk.Frame):
             return
 
         try:
-            self.chat_sio.emit("send_message", {"message": text})
+            self.chat_sio.emit("send_message", {"msg": text}, namespace="/chat")
             # Local echo (server may also broadcast back — duplicate risk)
             self.log(f"[{self.username}] {text}\n", "me")
         except Exception as e:
