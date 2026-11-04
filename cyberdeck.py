@@ -2873,6 +2873,7 @@ class OnionPage(tk.Frame):
 
     def _build_chat_keyboard(self, parent):
         rows = [
+            ["1","2","3","4","5","6","7","8","9","0"],
             ["q","w","e","r","t","y","u","i","o","p"],
             ["a","s","d","f","g","h","j","k","l"],
             ["z","x","c","v","b","n","m","SP","DEL","HIDE"],
@@ -2903,17 +2904,17 @@ class OnionPage(tk.Frame):
         self.kb_visible = True
         self.btn_start.place_forget()
         self.btn_stop.place_forget()
-        self.log_frame.place(x=0, y=30, width=480, height=105)
-        self.chat_input_frame.place(x=0, y=135, width=480, height=32)
-        self.keyboard_frame.place(x=0, y=167, width=480, height=153)
+        self.log_frame.place(x=0, y=30, width=480, height=100)
+        self.chat_input_frame.place(x=0, y=132, width=480, height=30)
+        self.keyboard_frame.place(x=0, y=165, width=480, height=155)
 
     def hide_keyboard(self):
         if not self.kb_visible: return
         self.kb_visible = False
         self.keyboard_frame.place_forget()
-        self.log_frame.place(x=0, y=30, width=480, height=185)
+        self.log_frame.place(x=0, y=30, width=480, height=225)
         if self.chat_connected or self.process:
-            self.chat_input_frame.place(x=0, y=215, width=480, height=32)
+            self.chat_input_frame.place(x=0, y=258, width=480, height=30)
         if self.process:
             self.btn_stop.place(x=240, y=290, width=240, height=30)
         else:
@@ -3071,7 +3072,7 @@ class OnionPage(tk.Frame):
             self.after(0, lambda: self.log("[*] Chat: connecting socketio...", "sys"))
             self.chat_sio = socketio.Client(http_session=sess, reconnection=False)
 
-            @self.chat_sio.event
+            @self.chat_sio.on("connect", namespace="/chat")
             def connect():
                 self.chat_connected = True
                 self.after(0, self._on_chat_connected)
@@ -3091,7 +3092,7 @@ class OnionPage(tk.Frame):
 
             self.chat_sio.connect(
                 url,
-                transports=["websocket"],
+                transports=["polling"], 
                 wait_timeout=120,
                 socketio_path="/socket.io",
                 namespace="/chat"
@@ -3137,8 +3138,6 @@ class OnionPage(tk.Frame):
 
         try:
             self.chat_sio.emit("text", {"msg": text}, namespace="/chat")
-            # Local echo (server may also broadcast back — duplicate risk)
-            self.log(f"[{self.username}] {text}\n", "me")
         except Exception as e:
             self.log(f"[!] Send failed: {str(e)[:40]}\n", "err")
 
