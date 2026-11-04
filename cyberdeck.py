@@ -767,7 +767,10 @@ class DirScanPage(tk.Frame):
             except Exception as e:
                 self.log(f"Error: {e}"); self._finish(); return
         words = list(dict.fromkeys(words))
-        proxies = {"http":"socks5h://127.0.0.1:9050","https":"socks5h://127.0.0.1:9050"} if self.use_tor else None
+        proxies = {
+            "http": "socks5://127.0.0.1:9050",
+            "https": "socks5://127.0.0.1:9050"
+        }
         timeout = 8 if self.use_tor else 4
         import urllib3; urllib3.disable_warnings()
         self.log("[*] Detecting wildcard...")
@@ -2900,19 +2903,22 @@ class OnionPage(tk.Frame):
         self.kb_visible = True
         self.btn_start.place_forget()
         self.btn_stop.place_forget()
-        self.keyboard_frame.place(x=0, y=250, width=480, height=70)
+        self.log_frame.place(x=0, y=30, width=480, height=105)
+        self.chat_input_frame.place(x=0, y=135, width=480, height=32)
+        self.keyboard_frame.place(x=0, y=167, width=480, height=153)
 
     def hide_keyboard(self):
         if not self.kb_visible: return
         self.kb_visible = False
         self.keyboard_frame.place_forget()
-        # Restore buttons
+        self.log_frame.place(x=0, y=30, width=480, height=185)
+        if self.chat_connected or self.process:
+            self.chat_input_frame.place(x=0, y=215, width=480, height=32)
         if self.process:
             self.btn_stop.place(x=240, y=290, width=240, height=30)
         else:
             self.btn_start.place(x=0, y=290, width=240, height=30)
             self.btn_stop.place(x=240, y=290, width=240, height=30)
-
     # ---------- Lifecycle ----------
     def on_show(self):
         pass
@@ -3021,6 +3027,7 @@ class OnionPage(tk.Frame):
         sess = req.Session()
         sess.proxies = proxies
         sess.verify = False
+        sess.headers.update({"Origin": url})
 
         # --- 1) Servis hazır olana kadar bekle (retry) ---
         # OnionShare .onion URL'si göründükten hemen sonra HTTP servisi
@@ -3033,7 +3040,7 @@ class OnionPage(tk.Frame):
             time.sleep(delay)
 
             # Önce root'u dene (bazı versiyonlar "/" → "/chat" redirect)
-            for path in ["/chat?username=" + self.username, "/"]:
+            for path in ["/","/chat?username=" + self.username]:
                 try:
                     r = sess.get(url + path, timeout=60, allow_redirects=True)
                     code = r.status_code
@@ -3069,7 +3076,7 @@ class OnionPage(tk.Frame):
                 self.chat_connected = True
                 self.after(0, self._on_chat_connected)
 
-            @self.chat_sio.on("new_message")
+            @self.chat_sio.on("chat_message", namespace="/chat")
             def on_msg(data):
                 self.after(0, lambda d=data: self._on_chat_message(d))
 
@@ -3084,9 +3091,10 @@ class OnionPage(tk.Frame):
 
             self.chat_sio.connect(
                 url,
-                transports=["polling"],
+                transports=["websocket"],
                 wait_timeout=120,
-                socketio_path="/socket.io"
+                socketio_path="/socket.io",
+                namespace="/chat"
             )
             self.chat_sio.wait()
         except Exception as e:
@@ -3103,7 +3111,7 @@ class OnionPage(tk.Frame):
     def _on_chat_message(self, data):
         try:
             user = data.get("username", "?")
-            msg = data.get("message", "")
+            msg = data.get("msg", "")
             tag = "me" if user == self.username else "other"
             self.log(f"[{user}] {msg}\n", tag)
         except Exception as e:
@@ -3128,7 +3136,7 @@ class OnionPage(tk.Frame):
             return
 
         try:
-            self.chat_sio.emit("send_message", {"message": text})
+            self.chat_sio.emit("text", {"msg": text}, namespace="/chat")
             # Local echo (server may also broadcast back — duplicate risk)
             self.log(f"[{self.username}] {text}\n", "me")
         except Exception as e:
